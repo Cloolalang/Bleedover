@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UK Mobile broadband multiple carrier signal coverage aggregated download speed estimate calculator (Cat 6+ UE) and UK MNO performance comparison analysis tool - v1.0</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 560px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; margin-bottom: 1rem; }
+    label { display: block; margin-top: 0.75rem; font-weight: 500; }
+    .carrier-row { border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 4px; }
+    .carrier-row h3 { margin: 0 0 0.5rem 0; font-size: 0.95rem; }
+    .carrier-row .carrier-on-wrap { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .carrier-row .carrier-on-wrap input[type="checkbox"] { width: 1.25rem; height: 1.25rem; accent-color: #0a0; cursor: pointer; }
+    .carrier-row .carrier-on-wrap label { margin: 0; font-weight: 500; cursor: pointer; }
+    .carrier-row .carrier-content.disabled { opacity: 0.55; pointer-events: none; }
+    .slider-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem; }
+    input[type="range"] { flex: 1; }
+    /* RSRP track: -124 to -75; green -75 to -95, amber -95 to -105, red below -105 */
+    input[type="range"].rsrp-slider::-webkit-slider-runnable-track { height: 0.5rem; border-radius: 2px; background: linear-gradient(to right, #c00 0%, #c00 39%, #e6a800 39%, #e6a800 59%, #0a0 59%, #0a0 100%); }
+    input[type="range"].rsrp-slider::-moz-range-track { height: 0.5rem; border-radius: 2px; background: linear-gradient(to right, #c00 0%, #c00 39%, #e6a800 39%, #e6a800 59%, #0a0 59%, #0a0 100%); }
+    /* RSRQ track: -24 to -8; green -8 to -10, amber -10 to -15, red -15 to -24 */
+    input[type="range"].rsrq-slider::-webkit-slider-runnable-track { height: 0.5rem; border-radius: 2px; background: linear-gradient(to right, #c00 0%, #c00 56%, #e6a800 56%, #e6a800 88%, #0a0 88%, #0a0 100%); }
+    input[type="range"].rsrq-slider::-moz-range-track { height: 0.5rem; border-radius: 2px; background: linear-gradient(to right, #c00 0%, #c00 56%, #e6a800 56%, #e6a800 88%, #0a0 88%, #0a0 100%); }
+    .value { min-width: 4ch; font-variant-numeric: tabular-nums; }
+    select { margin-top: 0.25rem; padding: 0.25rem 0.5rem; }
+    #result { margin-top: 1.5rem; padding: 1rem; background: #f0f0f0; border-radius: 4px; font-size: 1.1rem; overflow-x: auto; min-width: 0; }
+    #result strong { font-size: 1.25rem; }
+    #mcs-rsrp-list { display: block; }
+    #se-list { list-style: none; padding-left: 0; }
+    #se-list li { margin-bottom: 0.75rem; }
+    .mno-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.95rem; }
+    .mno-table th, .mno-table td { text-align: left; padding: 0.25rem 0.5rem 0.25rem 0; }
+    .mno-table th { font-weight: 600; }
+    .mno-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .mno-table tr.mno-group-header td { font-weight: 600; background: #e8e8e8; padding: 0.35rem 0.5rem; border-top: 1px solid #ccc; }
+    .pct-cell { text-align: right; }
+    .pct-cell .pct-bar-wrap { display: inline-flex; align-items: center; gap: 0.5rem; justify-content: flex-end; }
+    .pct-bar-track { width: 4.5rem; height: 0.5rem; border-radius: 2px; position: relative; background: linear-gradient(to right, #c00 0%, #c00 58.33%, #e6a800 58.33%, #e6a800 83.33%, #0a0 83.33%, #0a0 100%); }
+    .pct-bar-marker { position: absolute; top: -1px; bottom: -1px; width: 2px; left: 0; transform: translateX(-50%); background: #222; border-radius: 1px; pointer-events: none; }
+    #figure-of-merit-block { margin-top: 1.5rem; padding: 1.25rem; background: #e8f4e8; border: 2px solid #0a0; border-radius: 6px; }
+    #figure-of-merit-block .fom-label { font-size: 1rem; font-weight: 600; margin: 0 0 0.5rem 0; }
+    #figure-of-merit-block .fom-value { font-size: 2rem; font-weight: 700; margin: 0.25rem 0; }
+    #figure-of-merit-block .fom-bar-wrap { margin-top: 0.75rem; }
+    #figure-of-merit-block .fom-bar-track { width: 100%; max-width: 20rem; height: 1rem; border-radius: 4px; position: relative; background: linear-gradient(to right, #c00 0%, #c00 58.33%, #e6a800 58.33%, #e6a800 83.33%, #0a0 83.33%, #0a0 100%); }
+    #figure-of-merit-block .fom-bar-marker { position: absolute; top: -2px; bottom: -2px; width: 4px; left: 0; transform: translateX(-50%); background: #222; border-radius: 2px; pointer-events: none; }
+    #figure-of-merit-block .fom-scale-chart { max-width: 20rem; margin-top: 0.25rem; }
+    #figure-of-merit-block .fom-scale-chart .fom-scale-track { height: 0.6rem; display: block; }
+    #figure-of-merit-block .fom-scale-marker { top: 0; bottom: 0; }
+    #compare-block .compare-improvement-fom { margin: 1rem 0; }
+    #compare-block .compare-improvement-fom .fom-label { font-size: 1rem; font-weight: 600; margin: 0 0 0.5rem 0; }
+    #compare-block .compare-improvement-fom .fom-value { font-size: 2rem; font-weight: 700; margin: 0.25rem 0; }
+    .scenario-switch-wrap { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .scenario-switch-wrap input[type="checkbox"] { width: 2.25rem; height: 1.15rem; accent-color: #0a0; cursor: pointer; }
+    .scenario-switch-wrap label { cursor: pointer; font-weight: 500; margin: 0; }
+    .scenario-controls.disabled { opacity: 0.6; pointer-events: none; }
+    .method-footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #ccc; font-size: 0.85rem; color: #555; line-height: 1.45; }
+    .method-footer h2 { font-size: 0.95rem; font-weight: 600; color: #333; margin-bottom: 0.5rem; }
+    .method-footer ul { margin: 0.25rem 0 0.5rem 0; padding-left: 1.25rem; }
+    .flow-diagram-wrap { margin-top: 1rem; overflow-x: auto; }
+    .flow-diagram-wrap .mermaid { min-width: 480px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <h1>UK Mobile broadband multiple carrier signal coverage aggregated download speed estimate calculator (Cat 6+ UE) and UK MNO performance comparison analysis tool - v1.0</h1>
+  <p style="margin-bottom: 0.5rem;"><button type="button" id="reset-defaults" style="padding: 0.35rem 0.75rem; font-size: 0.95rem; cursor: pointer;">Reset to defaults</button></p>
+  <p>Set number of carriers and per-carrier type (LTE or NR), bandwidth, average RSRP/SS-RSRP, and when the link is MIMO (2×2) the % of time to assume 2 streams (otherwise SISO (1×1)). Result uses the macro throughput model with per-carrier MIMO factor. For NR carriers use SS-RSRP; result is indicative (model is LTE-oriented per document 7.2).</p>
+
+  <label for="mno-select">MNO</label>
+  <select id="mno-select" style="margin-bottom: 1rem;">
+    <option value="EE" selected>EE</option>
+    <option value="Vodafone">Vodafone</option>
+    <option value="VMO2">VMO2</option>
+    <option value="Three">Three</option>
+  </select>
+
+  <div id="scenario" style="margin-bottom: 1rem; padding: 0.75rem; background: #f9f9f9; border-radius: 4px; border: 1px solid #e0e0e0;">
+    <div class="scenario-switch-wrap">
+      <input type="checkbox" id="scenario-on" checked aria-describedby="scenario-desc">
+      <label for="scenario-on" id="scenario-desc">Scenario on (apply congestion)</label>
+    </div>
+    <div id="scenario-controls" class="scenario-controls">
+    <label for="environment" style="margin-top: 0.5rem;">Environment</label>
+    <select id="environment">
+      <option value="city">City</option>
+      <option value="urban" selected>Urban</option>
+      <option value="suburban">Suburban</option>
+      <option value="rural">Rural</option>
+    </select>
+    <label for="time-of-day" style="margin-top: 0.5rem;">Time of day</label>
+    <select id="time-of-day">
+      <option value="peak">Peak</option>
+      <option value="off_peak" selected>Off-peak</option>
+    </select>
+    <label for="day-of-week" style="margin-top: 0.5rem;">Day of week</label>
+    <select id="day-of-week">
+      <option value="weekday" selected>Weekday</option>
+      <option value="weekend">Weekend</option>
+    </select>
+    </div>
+    <p id="scenario-factor-display" style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #555;">Factor applied: —</p>
+    <label for="calibration-offset" style="margin-top: 0.5rem;">RSRP calibration offset (dB)</label>
+    <input type="number" id="calibration-offset" value="10" min="-20" max="20" step="0.5" style="width: 5rem; padding: 0.25rem 0.5rem;" title="Add to RSRP for model tuning (e.g. match real tests)">
+    <label for="protocol-overhead" style="margin-top: 0.5rem;">Protocol overhead (%)</label>
+    <input type="number" id="protocol-overhead" value="10" min="0" max="30" step="1" style="width: 5rem; padding: 0.25rem 0.5rem;" title="Subtracted from MAC-layer throughput to estimate user-visible speed-test (TCP/IP, RLC/PDCP). Default 10%.">
+    <p style="font-size: 0.85rem; color: #555; margin: 0.25rem 0 0 0;">Protocol overhead is applied to get estimated user/speed-test download (MAC layer × (1 − overhead)).</p>
+    <label for="functional-threshold" style="margin-top: 0.75rem;">Functional method threshold (dBm)</label>
+    <input type="number" id="functional-threshold" value="-105" min="-124" max="-50" step="1" placeholder="-105" style="width: 6rem; padding: 0.25rem 0.5rem;" title="Carriers with average RSRP ≥ this get peak/5 (30 Mbit/s per 20 MHz). Compared to displayed RSRP. No scenario or RSRQ.">
+    <p style="font-size: 0.85rem; color: #555; margin: 0.25rem 0 0 0;">Carriers above threshold: <strong>peak/5</strong> (150 Mbit/s per 20 MHz 2×2 → 30 Mbit/s per 20 MHz). No congestion or RSRQ.</p>
+  </div>
+
+  <section class="existing-block" aria-label="Existing coverage status">
+    <h2 style="font-size: 1.1rem; margin: 0 0 0.75rem 0;">Existing coverage status (before DAS)</h2>
+    <label for="num-carriers">Number of carriers</label>
+    <select id="num-carriers">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3" selected>3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+      <option value="7">7</option>
+      <option value="8">8</option>
+      <option value="9">9</option>
+      <option value="10">10</option>
+    </select>
+
+    <div id="carriers"></div>
+
+    <div id="result">
+      <p><strong>1. Total multi-carrier Bandwidth:</strong> <strong id="total-bandwidth">—</strong> MHz</p>
+      <p><strong>2. Estimated MCS (from RSRP)</strong>:<br><span id="mcs-rsrp-list">—</span></p>
+      <div id="spectral-efficiency" style="margin-top: 0.5rem;">
+        <p><strong>3. Spectral efficiency and per-carrier throughput</strong></p>
+        <ul id="se-list" style="margin: 0.25rem 0 0 0; padding-left: 1.25rem;"></ul>
+        <p id="se-overall" style="margin: 0.5rem 0 0 0;"></p>
+      </div>
+      <p style="margin-top: 0.5rem;"><strong>4. Potential (unloaded)</strong>: <strong id="potential-dl">—</strong> Mbit/s</p>
+      <p><strong>5. Expected download speed (congestion-adjusted)</strong>: <strong id="expected-dl">—</strong> Mbit/s</p>
+      <p><strong>6. Estimated user/speed-test download</strong> <span id="protocol-overhead-applied-label" style="font-weight: normal; color: #555;">(after <span id="protocol-overhead-value">10</span>% protocol overhead applied)</span>: <strong id="user-dl">—</strong> Mbit/s</p>
+      <p id="functional-method-row" style="margin-top: 0.5rem;"><strong>7. Functional method</strong> <span id="functional-threshold-label" style="font-weight: normal; color: #555;">(threshold <span id="functional-threshold-value">—</span> dBm, peak/5, no scenario/RSRQ)</span>: <strong id="functional-dl">—</strong></p>
+      <p id="calibration-note" style="font-size: 0.9rem; color: #555; margin-top: 0.25rem;"></p>
+      <p id="nr-caveat" style="margin-top: 0.5rem; font-size: 0.9rem; color: #555; display: none;"></p>
+    </div>
+  </section>
+
+  <div id="figure-of-merit-block" style="display: none;">
+    <p class="fom-label">4G benchmark comparison — % of benchmark (figure of merit)</p>
+    <p class="fom-value" id="figure-of-merit-value">—</p>
+    <div class="fom-bar-wrap" id="figure-of-merit-bar"></div>
+    <p class="fom-scale-label" style="font-size: 0.8rem; color: #555; margin: 0.5rem 0 0.15rem 0;">Scale (relative to 100%):</p>
+    <div class="fom-scale-chart" aria-hidden="true">
+      <div style="position: relative; max-width: 20rem;">
+        <span class="fom-bar-track fom-scale-track"></span>
+        <span class="fom-scale-marker" id="figure-of-merit-scale-marker" style="display: none; position: absolute; top: -1px; bottom: -1px; width: 4px; left: 0; transform: translateX(-50%); background: #222; border-radius: 2px; pointer-events: none;"></span>
+      </div>
+      <span class="fom-scale-labels" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #555; margin-top: 0.2rem;">0%<span>70%</span><span>100%</span><span>120%</span></span>
+    </div>
+  </div>
+
+  <div id="comparison" class="comparison-block" style="margin-top: 1.5rem; padding: 1rem; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;">
+    <h2 style="margin: 0 0 0.75rem 0; font-size: 1.1rem;">Industry benchmark comparative analysis</h2>
+    <p id="mno-year" style="margin: 0 0 0.25rem 0; font-size: 0.9rem; color: #555;"></p>
+    <p id="mno-source" style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #666;"></p>
+    <h3 style="margin: 1rem 0 0.5rem 0; font-size: 1rem;">4G benchmarks</h3>
+    <table class="mno-table" id="mno-table-overall" aria-label="4G and USO benchmark comparison">
+      <thead>
+        <tr><th>Benchmark</th><th class="num">Speed (Mbit/s)</th><th class="num">% of benchmark</th><th>Recommendation</th></tr>
+      </thead>
+      <tbody id="mno-tbody-overall"></tbody>
+    </table>
+    <h3 style="margin: 1.25rem 0 0.5rem 0; font-size: 1rem;">5G benchmarks</h3>
+    <table class="mno-table" id="mno-table-5g" aria-label="5G benchmark comparison">
+      <thead>
+        <tr><th>Benchmark</th><th class="num">Speed (Mbit/s)</th><th class="num">% of benchmark</th><th>Recommendation</th></tr>
+      </thead>
+      <tbody id="mno-tbody-5g"></tbody>
+    </table>
+  </div>
+
+  <section class="das-block" aria-label="DAS proposed design">
+    <h2 style="font-size: 1.1rem; margin: 1.5rem 0 0.75rem 0;">DAS proposed design (predicted with DAS)</h2>
+    <p style="font-size: 0.9rem; color: #555; margin: 0 0 0.5rem 0;">Predicted measurements if a DAS is installed in the coverage area. Uses the same model as above: effective MCS from RSRP+RSRQ (calibration table), throughput and congestion applied identically.</p>
+    <div class="das-inputs" style="padding: 0.75rem; background: #f5f5f5; border-radius: 4px; border: 1px solid #e0e0e0; margin-bottom: 0.75rem;">
+      <label for="das-bw-mhz">Total carriers bandwidth (MHz)</label>
+      <select id="das-bw-mhz">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+        <option value="25">25</option>
+        <option value="30">30</option>
+        <option value="35" selected>35</option>
+        <option value="40">40</option>
+        <option value="45">45</option>
+        <option value="50">50</option>
+        <option value="55">55</option>
+        <option value="60">60</option>
+        <option value="65">65</option>
+        <option value="70">70</option>
+        <option value="75">75</option>
+        <option value="80">80</option>
+        <option value="85">85</option>
+        <option value="90">90</option>
+        <option value="95">95</option>
+        <option value="100">100</option>
+      </select>
+      <label for="das-rsrp" style="margin-top: 0.5rem;">Predicted average RSRP (dBm)</label>
+      <input type="number" id="das-rsrp" min="-124" max="-75" value="-100" step="1" style="width: 5rem; padding: 0.25rem 0.5rem;">
+      <label for="das-rsrq" style="margin-top: 0.5rem;">Predicted average RSRQ (dB)</label>
+      <input type="number" id="das-rsrq" min="-24" max="-8" value="-13" step="0.5" style="width: 5rem; padding: 0.25rem 0.5rem;">
+      <label for="das-rank2-pct" style="margin-top: 0.5rem;">Estimated MIMO %</label>
+      <select id="das-rank2-pct">
+        <option value="0">0</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+        <option value="25">25</option>
+        <option value="30">30</option>
+        <option value="40">40</option>
+        <option value="50">50</option>
+        <option value="60" selected>60</option>
+        <option value="70">70</option>
+        <option value="80">80</option>
+        <option value="90">90</option>
+        <option value="100">100</option>
+      </select>
+      <label for="das-congestion-factor" style="margin-top: 0.5rem;">Congestion factor (DAS)</label>
+      <select id="das-congestion-factor" title="Apply this factor to DAS potential; override the scenario-based value if needed.">
+        <option value="">Use scenario (same as above)</option>
+        <option value="0.50">0.50</option>
+        <option value="0.55">0.55</option>
+        <option value="0.60">0.60</option>
+        <option value="0.65">0.65</option>
+        <option value="0.70">0.70</option>
+        <option value="0.75">0.75</option>
+        <option value="0.80" selected>0.80</option>
+        <option value="0.85">0.85</option>
+        <option value="0.90">0.90</option>
+        <option value="0.95">0.95</option>
+        <option value="1.00">1.00</option>
+      </select>
+    </div>
+    <div id="das-result" style="padding: 1rem; background: #f0f0f0; border-radius: 4px; font-size: 1.1rem;">
+      <p>Expected download speed (congestion-adjusted): <strong id="das-expected-dl">—</strong> Mbit/s</p>
+      <p>Estimated user/speed-test download <span style="color: #555;">(after <span id="das-protocol-overhead-value">10</span>% protocol overhead applied)</span>: <strong id="das-user-dl">—</strong> Mbit/s</p>
+      <p>Potential (unloaded): <strong id="das-potential-dl">—</strong> Mbit/s</p>
+      <p>Total bandwidth: <strong id="das-total-bandwidth">—</strong> MHz</p>
+    </div>
+  </section>
+
+  <section class="survey-indirect-block" aria-label="Site survey indirect throughput" style="margin-top: 1.5rem; padding: 1.25rem; background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px;">
+    <h2 style="font-size: 1.1rem; margin: 0 0 0.5rem 0;">Site survey indirect throughput (from % over threshold)</h2>
+    <p style="font-size: 0.9rem; color: #555; margin: 0 0 0.75rem 0;">From survey: enter the <strong>% of measurements ≥ <span id="survey-threshold-label">−105</span> dBm</strong> per carrier and each carrier’s bandwidth. Uses peak/5 (150 Mbit/s per 20 MHz 2×2 → 30 Mbit/s per 20 MHz). Result is an indirect average site throughput.</p>
+    <label for="survey-threshold">Threshold (dBm)</label>
+    <input type="number" id="survey-threshold" value="-105" min="-124" max="-50" step="1" style="width: 6rem; padding: 0.25rem 0.5rem; margin-right: 1rem;" title="Survey threshold: % of measurements at or above this RSRP.">
+    <label for="survey-num-carriers">Number of carriers</label>
+    <select id="survey-num-carriers" style="margin-bottom: 0.75rem;">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3" selected>3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+      <option value="7">7</option>
+      <option value="8">8</option>
+      <option value="9">9</option>
+      <option value="10">10</option>
+    </select>
+    <div id="survey-carriers"></div>
+    <div id="survey-indirect-result" style="margin-top: 1rem; padding: 0.75rem; background: #fff; border-radius: 4px; border: 1px solid #e0e0e0;">
+      <p style="margin: 0;"><strong>Site indirect throughput:</strong> <strong id="survey-indirect-mbps">—</strong> Mbit/s</p>
+    </div>
+  </section>
+
+  <div class="compare-block" id="compare-block" style="margin-top: 1.5rem; padding: 1.25rem; background: #e8f4e8; border: 2px solid #0a0; border-radius: 6px;">
+    <h2 style="font-size: 1.05rem; margin: 0 0 0.75rem 0;">Estimated Before vs after (existing → DAS)</h2>
+    <p style="margin: 0.4rem 0;"><strong>Existing % of benchmark (4G average):</strong> <span id="compare-existing-pct">—</span></p>
+    <p style="margin: 0.4rem 0;"><strong>DAS predicted % of benchmark:</strong> <span id="compare-das-pct">—</span></p>
+    <div class="compare-improvement-fom">
+      <p class="fom-label">Improvement</p>
+      <p class="fom-value" id="compare-improvement">—</p>
+    </div>
+    <p style="margin: 0.4rem 0;"><strong>Existing estimated download:</strong> <span id="compare-existing-dl">—</span></p>
+    <p style="margin: 0.4rem 0;"><strong>DAS predicted download:</strong> <span id="compare-das-dl">—</span></p>
+    <p style="margin: 0.4rem 0;"><strong>Speed gain:</strong> <span id="compare-speed-gain">—</span></p>
+  </div>
+
+  <details class="method-footer" id="flow-diagram-details" style="margin-top: 1.5rem;" aria-label="Calculation flow diagram">
+    <summary style="cursor: pointer; font-weight: 600; color: #333;">Calculation flow diagram</summary>
+    <p style="margin: 0.75rem 0 0.5rem 0;">Process and math from inputs to expected download speed. See <code>throughput_calculator_flow.md</code> in the project for the full narrative and formulae.</p>
+    <div class="flow-diagram-wrap" id="flow-diagram-mermaid">
+      <pre class="mermaid">
+flowchart TB
+  subgraph inputs [Inputs]
+    RSRP[RSRP dBm per carrier]
+    BW[Bandwidth MHz per carrier]
+    Rank2[MIMO rank2 pct]
+    RSRQ[RSRQ dB per carrier]
+    Cal[Calibration offset dB]
+    Scenario[Scenario: env, time, day]
+  end
+
+  subgraph per_carrier [Per-carrier unloaded]
+    RSRP --> ApplyCal[RSRP_eff = RSRP + Cal]
+    ApplyCal --> RSRPtoMCS["MCS = 5 + 23*(RSRP_eff+110)/35\n(valid MCS 0-28)"]
+    BW --> TBS
+    Rank2 --> RankFactor["rank_factor = 1 + p\n(rank-1: 1×TBS, rank-2: 2×TBS)"]
+    RSRPtoMCS --> TBS["TBS lookup 36.213\nthroughput = TBS_bits/1e6 * rank_factor"]
+    TBS --> PerCarrierMbps["per_carrier_mbps unloaded"]
+  end
+
+  subgraph rsrq [RSRQ de-rate]
+    RSRQ --> RSRQFactor["f_rsrq from curve:\n-10: 1.0, -15: 0.98, -24: 0.01"]
+    PerCarrierMbps --> RSRQFactor
+    RSRQFactor --> PerCarrierDeRate["per_carrier_mbps after RSRQ"]
+  end
+
+  subgraph aggregate [Aggregate and scenario]
+    PerCarrierDeRate --> Sum["potential = sum per_carrier_mbps"]
+    Scenario --> CF["CF = scenario env/time/day\nor congestion_factor_override if provided"]
+    Sum --> CF
+    CF --> Final["expected_dl_mbps = potential * CF"]
+  end
+
+  Final --> Output[Expected download Mbit/s]
+
+  subgraph das [DAS and comparison]
+    DASNote["DAS: same pipeline with DAS inputs\n(RSRP, total bandwidth, RSRQ, MIMO %, optional CF override).\nBefore/after: existing vs DAS (% benchmark,\nexpected DL Mbit/s, improvement %, speed gain)."]
+  end
+      </pre>
+    </div>
+  </details>
+
+  <footer class="method-footer" aria-label="Calculation method and assumptions">
+    <h2>Method, assumptions and limitations</h2>
+    <p><strong>Calculation.</strong> Expected downlink uses an <strong>estimated invoked system MCS</strong> mapped from DL RSRP (no CQI). RSRP is mapped linearly to MCS (0–28); throughput per carrier is derived from MCS and bandwidth using <strong>3GPP TS 36.213</strong> TBS (Tables 7.1.7.1-1, 7.1.7.2.1-1). Effective throughput = TBS-based layer throughput × MIMO factor; results are summed over all carriers. A <strong>protocol overhead</strong> (default 10%) is applied to the congestion-adjusted MAC-layer speed to give the <strong>estimated user/speed-test download</strong> (TCP/IP, RLC/PDCP overhead). Where the 36.213 table is unavailable, a legacy η_raw(RSRP) curve is used.</p>
+    <p><strong>Assumptions.</strong> Model assumes a Cat 6+ (4G+) / NR-capable UE. We distinguish <strong>MIMO (2×2)</strong> vs <strong>SISO (1×1)</strong>: when the link is MIMO, your input is the fraction of time we assume 2 streams (vs 1 stream); the MIMO factor uses that and a 2× throughput gain for 2 streams vs 1. MCS is not measured (CQI not available); it is estimated from RSRP for indicative throughput only. <strong>RSRQ:</strong> RSRQ is highly variable (±4 dB in practice). In field experience, RSRQ is not seen better than about -7 dB; typical macro is around -13 dB. The optional RSRQ de-rate curve is indicative only (no external standard): impacts are assumed to start from -15 dB downwards; -20 dB to -24 dB causes larger speed reduction; -24 dB is effectively the bottom of the range and can reduce DL to ~1 Mbit/s on a 20 MHz channel.</p>
+    <p><strong>Functional method (optional).</strong> An indirect throughput estimate for <strong>existing coverage only</strong> (not used in the DAS estimator). If a <strong>functional method threshold</strong> (dBm) is set, carriers with average RSRP ≥ that threshold are assumed to provide <strong>peak/5</strong> (peak = 150 Mbit/s for 20 MHz 2×2 MIMO → <strong>30 Mbit/s per 20 MHz</strong>; divisor is fixed at 5, Swedish Post style). No congestion factor or RSRQ de-rate is applied. The threshold is compared to the displayed (raw) RSRP per carrier.</p>
+    <p><strong>Limitations.</strong> Outputs are indicative only and are not capacity or contractual guarantees. RSRP→MCS is an approximation (scheduler uses CQI/SINR in practice). Load, scheduler behaviour and backhaul are not modelled; congestion factors are indicative and not calibrated to this site—they reflect typical differences by environment, time of day and day of week. The RSRP calibration offset (dB) is for aligning the model with your real test data and is user-defined. Optional RSRQ (dB) per carrier de-rates that carrier’s estimated speed when quality is poor (indicative curve from -15 dB down to -24 dB; not from an external standard). RSRQ de-rating is based on empirical field-testing experience and is not bandwidth sensitive; further model tuning may be required. NR carriers use the same LTE-based mapping (use SS-RSRP). NSA NR (EN-DC) is implemented differently by different networks—aggregation and band combinations vary by operator. We do not distinguish MIMO type when rank &gt; 1 is indicated (e.g. rank 2 vs rank 3/4); support for a rank distribution may be considered in a later version. MNO national benchmarks are from the Cross-report snapshot and should be refreshed when reports are updated. Reference: macro-pre-sales-radio-survey-requirements.md Section 7.2.</p>
+  </footer>
+
+  <script>
+    const RSRP_MIN = -124;
+    const RSRP_MAX = -75;
+    const RSRP_DEFAULT = -105;
+    const RANK2_PCT_MIN = 0;
+    const RANK2_PCT_MAX = 100;
+    const RANK2_PCT_DEFAULT = 25;
+    const RSRQ_MIN = -24;
+    const RSRQ_MAX = -8;
+    const RSRQ_DEFAULT = -13;  // typical macro; de-rate curve from -15 down
+    const BANDWIDTHS_LTE = [5, 10, 15, 20, 25, 30];
+    const BANDWIDTHS_NR = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 120, 150, 200, 250, 300, 400];
+    const USO_MBPS = 10;  // UK Universal Service Obligation broadband threshold (Mbit/s)
+    const PEAK_20MHZ_2X2_SURVEY = 150;
+    const SURVEY_DIVISOR = 5;
+    const BANDWIDTHS_SURVEY = [5, 10, 15, 20, 25, 30];
+
+    function formatSpeedMbps(val) {
+      if (val == null || Number.isNaN(val)) return '—';
+      const n = Number(val);
+      if (n < 0.01) return n.toFixed(3);
+      if (n < 1) return n.toFixed(2);
+      if (n >= 10) return Math.round(n).toString();
+      return n.toFixed(1);
+    }
+
+    // Effective MCS (0–28) from throughput and BW so display updates with RSRP/RSRQ (approx to backend TBS)
+    function effectiveMcsFromThroughputMbps(throughputMbps, bwMhz) {
+      if (throughputMbps == null || bwMhz == null || bwMhz <= 0) return null;
+      const tpm = Number(throughputMbps) / Number(bwMhz);
+      const mcs = Math.round(28 * (tpm / 3.0));
+      return Math.max(0, Math.min(28, mcs));
+    }
+
+    function getBandwidthsForRat(rat) {
+      return rat === 'NR' ? BANDWIDTHS_NR : BANDWIDTHS_LTE;
+    }
+
+    function buildBwOptions(bandwidths, selectedBw) {
+      return bandwidths.map(bw => `<option value="${bw}" ${bw === selectedBw ? 'selected' : ''}>${bw}</option>`).join('');
+    }
+
+    const numCarriersEl = document.getElementById('num-carriers');
+    const carriersEl = document.getElementById('carriers');
+    const expectedDlEl = document.getElementById('expected-dl');
+    const potentialDlEl = document.getElementById('potential-dl');
+    const totalBandwidthEl = document.getElementById('total-bandwidth');
+    const mcsRsrpListEl = document.getElementById('mcs-rsrp-list');
+    const seListEl = document.getElementById('se-list');
+    const seOverallEl = document.getElementById('se-overall');
+    const mnoYearEl = document.getElementById('mno-year');
+    const mnoSourceEl = document.getElementById('mno-source');
+    const mnoTbody5gEl = document.getElementById('mno-tbody-5g');
+    const mnoTbodyOverallEl = document.getElementById('mno-tbody-overall');
+    const nrCaveatEl = document.getElementById('nr-caveat');
+    const scenarioOnEl = document.getElementById('scenario-on');
+    const scenarioControlsEl = document.getElementById('scenario-controls');
+    const scenarioFactorDisplayEl = document.getElementById('scenario-factor-display');
+    const environmentEl = document.getElementById('environment');
+    const timeOfDayEl = document.getElementById('time-of-day');
+    const dayOfWeekEl = document.getElementById('day-of-week');
+    const calibrationOffsetEl = document.getElementById('calibration-offset');
+    const calibrationNoteEl = document.getElementById('calibration-note');
+    const mnoSelectEl = document.getElementById('mno-select');
+    const figureOfMeritBlockEl = document.getElementById('figure-of-merit-block');
+    const figureOfMeritValueEl = document.getElementById('figure-of-merit-value');
+    const figureOfMeritBarEl = document.getElementById('figure-of-merit-bar');
+    const figureOfMeritScaleMarkerEl = document.getElementById('figure-of-merit-scale-marker');
+    const dasExpectedDlEl = document.getElementById('das-expected-dl');
+    const dasPotentialDlEl = document.getElementById('das-potential-dl');
+    const dasTotalBandwidthEl = document.getElementById('das-total-bandwidth');
+    const compareExistingPctEl = document.getElementById('compare-existing-pct');
+    const compareDasPctEl = document.getElementById('compare-das-pct');
+    const compareImprovementEl = document.getElementById('compare-improvement');
+    const compareExistingDlEl = document.getElementById('compare-existing-dl');
+    const compareDasDlEl = document.getElementById('compare-das-dl');
+    const compareSpeedGainEl = document.getElementById('compare-speed-gain');
+
+    let lastExistingExpected = null;
+    let lastExistingPotential = null;
+    let lastExistingPct = null;
+    let lastDASExpected = null;
+    let lastDASPotential = null;
+    let lastDASPct = null;
+    let lastMnoAvgBenchmark4g = null;
+
+    function getDASCarriers() {
+      const totalBw = parseInt(document.getElementById('das-bw-mhz').value, 10) || 35;
+      let rsrp = parseInt(document.getElementById('das-rsrp').value, 10);
+      if (Number.isNaN(rsrp)) rsrp = RSRP_DEFAULT;
+      if (rsrp > 0 && rsrp <= 130) rsrp = -rsrp;
+      const rsrqVal = document.getElementById('das-rsrq').value;
+      const rsrq = rsrqVal !== '' && !Number.isNaN(parseFloat(rsrqVal)) ? parseFloat(rsrqVal) : -13;
+      const rank2Raw = document.getElementById('das-rank2-pct').value;
+      const rank2 = (rank2Raw === '' || Number.isNaN(Number(rank2Raw))) ? 60 : Math.max(0, Math.min(100, parseInt(rank2Raw, 10)));
+      return [{ rsrp_dbm: rsrp, bw_mhz: totalBw, rank2_pct: rank2, rat: 'LTE', rsrq_db: rsrq }];
+    }
+
+    function round1(x) {
+      if (x == null || Number.isNaN(x)) return null;
+      return Math.round(Number(x) * 10) / 10;
+    }
+
+    function updateComparison() {
+      compareExistingPctEl.textContent = lastExistingPct != null ? round1(lastExistingPct) + '%' : '—';
+      compareDasPctEl.textContent = lastDASPct != null ? round1(lastDASPct) + '%' : '—';
+      if (lastExistingPct != null && lastDASPct != null) {
+        const deltaPct = round1(lastDASPct - lastExistingPct);
+        compareImprovementEl.textContent = (deltaPct >= 0 ? '+' : '') + deltaPct + '%';
+      } else {
+        compareImprovementEl.textContent = '—';
+      }
+      compareExistingDlEl.textContent = lastExistingExpected != null ? round1(lastExistingExpected) + ' Mbit/s' : '—';
+      compareDasDlEl.textContent = lastDASExpected != null ? round1(lastDASExpected) + ' Mbit/s' : '—';
+      if (lastExistingExpected != null && lastDASExpected != null) {
+        const gain = round1(lastDASExpected - lastExistingExpected);
+        compareSpeedGainEl.textContent = (gain >= 0 ? '+' : '') + gain + ' Mbit/s';
+      } else {
+        compareSpeedGainEl.textContent = '—';
+      }
+    }
+
+    function updateSurveyIndirect() {
+      const n = parseInt(document.getElementById('survey-num-carriers').value, 10) || 3;
+      let sum = 0;
+      for (let i = 0; i < n; i++) {
+        const pctEl = document.getElementById(`survey-pct-${i}`);
+        const bwEl = document.getElementById(`survey-bw-${i}`);
+        if (!pctEl || !bwEl) continue;
+        const pct = Math.max(0, Math.min(100, parseFloat(pctEl.value) || 0)) / 100;
+        const bw = parseFloat(bwEl.value) || 20;
+        sum += pct * (PEAK_20MHZ_2X2_SURVEY * (bw / 20)) / SURVEY_DIVISOR;
+      }
+      const el = document.getElementById('survey-indirect-mbps');
+      if (el) el.textContent = sum > 0 ? formatSpeedMbps(Math.round(sum * 10) / 10) : '—';
+    }
+
+    function buildSurveyCarrierRows() {
+      const n = parseInt(document.getElementById('survey-num-carriers').value, 10) || 3;
+      const container = document.getElementById('survey-carriers');
+      if (!container) return;
+      container.innerHTML = '';
+      for (let i = 0; i < n; i++) {
+        const row = document.createElement('div');
+        row.className = 'carrier-row';
+        row.style.marginBottom = '0.75rem';
+        row.innerHTML = `
+          <h3 style="margin: 0 0 0.35rem 0; font-size: 0.95rem;">Carrier ${i + 1}</h3>
+          <label for="survey-pct-${i}">% of measurements over threshold (0–100)</label>
+          <input type="number" id="survey-pct-${i}" min="0" max="100" value="50" step="1" style="width: 5rem; padding: 0.25rem 0.5rem;">
+          <label for="survey-bw-${i}" style="margin-top: 0.35rem;">Bandwidth (MHz)</label>
+          <select id="survey-bw-${i}">
+            ${BANDWIDTHS_SURVEY.map(b => `<option value="${b}"${b === 20 ? ' selected' : ''}>${b}</option>`).join('')}
+          </select>
+        `;
+        container.appendChild(row);
+        document.getElementById(`survey-pct-${i}`).addEventListener('input', updateSurveyIndirect);
+        document.getElementById(`survey-pct-${i}`).addEventListener('change', updateSurveyIndirect);
+        document.getElementById(`survey-bw-${i}`).addEventListener('change', updateSurveyIndirect);
+      }
+      updateSurveyIndirect();
+    }
+
+    function renderCarrierRows() {
+      const n = parseInt(numCarriersEl.value, 10);
+      carriersEl.innerHTML = '';
+      for (let i = 0; i < n; i++) {
+        const row = document.createElement('div');
+        row.className = 'carrier-row';
+        row.innerHTML = `
+          <h3>Carrier ${i + 1}</h3>
+          <div class="carrier-on-wrap">
+            <input type="checkbox" id="carrier-on-${i}" data-carrier="${i}" checked aria-label="Include carrier ${i + 1} in calculation">
+            <label for="carrier-on-${i}">Carrier on</label>
+          </div>
+          <div class="carrier-content" id="carrier-content-${i}">
+          <label>Carrier type</label>
+          <select id="rat-${i}" data-carrier="${i}">
+            <option value="LTE">LTE (4G)</option>
+            <option value="NR">NR (5G)</option>
+          </select>
+          <label>Average RSRP / SS-RSRP (dBm)</label>
+          <div class="slider-row">
+            <input type="range" class="rsrp-slider" id="rsrp-${i}" min="${RSRP_MIN}" max="${RSRP_MAX}" value="${RSRP_DEFAULT}" data-carrier="${i}">
+            <span class="value" id="rsrp-value-${i}">${RSRP_DEFAULT}</span>
+          </div>
+          <label>Average RSRQ (dB)</label>
+          <div class="slider-row">
+            <input type="range" class="rsrq-slider" id="rsrq-${i}" min="${RSRQ_MIN}" max="${RSRQ_MAX}" value="${RSRQ_DEFAULT}" step="0.5" data-carrier="${i}" title="De-rate when poor. -15 = no de-rate; impacts from -15 down; -24 ~1 Mbit/s on 20 MHz.">
+            <span class="value" id="rsrq-value-${i}">${RSRQ_DEFAULT}</span>
+          </div>
+          <label>Bandwidth (MHz)</label>
+          <select id="bw-${i}" data-carrier="${i}">
+            ${buildBwOptions(BANDWIDTHS_LTE, i < 2 ? 20 : 10)}
+          </select>
+          <label>When MIMO (2×2): assume 2 streams this % of the time</label>
+          <div class="slider-row">
+            <input type="range" id="rank2-${i}" min="${RANK2_PCT_MIN}" max="${RANK2_PCT_MAX}" value="${RANK2_PCT_DEFAULT}" data-carrier="${i}">
+            <span class="value" id="rank2-value-${i}">${RANK2_PCT_DEFAULT}</span> %
+          </div>
+          </div>
+        `;
+        carriersEl.appendChild(row);
+
+        const carrierOnEl = document.getElementById(`carrier-on-${i}`);
+        const carrierContentEl = document.getElementById(`carrier-content-${i}`);
+        carrierOnEl.addEventListener('change', () => {
+          carrierContentEl.classList.toggle('disabled', !carrierOnEl.checked);
+          fetchResult();
+        });
+        carrierContentEl.classList.toggle('disabled', !carrierOnEl.checked);
+
+        const rsrpInput = document.getElementById(`rsrp-${i}`);
+        rsrpInput.addEventListener('input', () => {
+          document.getElementById(`rsrp-value-${i}`).textContent = rsrpInput.value;
+          fetchResult();
+        });
+        document.getElementById(`rat-${i}`).addEventListener('change', () => {
+          const ratEl = document.getElementById(`rat-${i}`);
+          const bwEl = document.getElementById(`bw-${i}`);
+          const list = getBandwidthsForRat(ratEl.value);
+          const current = parseInt(bwEl.value, 10);
+          bwEl.innerHTML = buildBwOptions(list, list.includes(current) ? current : list[0]);
+          fetchResult();
+          if (String(ratEl.value).toUpperCase() === 'NR') {
+            setTimeout(function () { alert('Please make sure you set up the carriers for NSA with one primary LTE as EN-DC anchor unless you are calculating for 5G SA.'); }, 0);
+          }
+        });
+        document.getElementById(`bw-${i}`).addEventListener('change', fetchResult);
+        const rank2Input = document.getElementById(`rank2-${i}`);
+        rank2Input.addEventListener('input', () => {
+          document.getElementById(`rank2-value-${i}`).textContent = rank2Input.value;
+          fetchResult();
+        });
+        const rsrqInput = document.getElementById(`rsrq-${i}`);
+        rsrqInput.addEventListener('input', () => {
+          document.getElementById(`rsrq-value-${i}`).textContent = rsrqInput.value;
+          fetchResult();
+        });
+      }
+      fetchResult();
+    }
+
+    function getCarriers() {
+      const n = parseInt(numCarriersEl.value, 10);
+      const carriers = [];
+      for (let i = 0; i < n; i++) {
+        const carrierOn = document.getElementById(`carrier-on-${i}`);
+        if (carrierOn && !carrierOn.checked) continue;
+        const rsrp = document.getElementById(`rsrp-${i}`);
+        const bw = document.getElementById(`bw-${i}`);
+        const rank2 = document.getElementById(`rank2-${i}`);
+        const rat = document.getElementById(`rat-${i}`);
+        const rsrq = document.getElementById(`rsrq-${i}`);
+        if (rsrp && bw && rank2 && rat) {
+          const rsrqVal = rsrq ? parseFloat(rsrq.value) : null;
+          let rsrpDbm = parseInt(rsrp.value, 10);
+          if (Number.isNaN(rsrpDbm)) rsrpDbm = RSRP_DEFAULT;
+          if (rsrpDbm > 0 && rsrpDbm <= 130) rsrpDbm = -rsrpDbm;
+          carriers.push({
+            rsrp_dbm: rsrpDbm,
+            bw_mhz: parseInt(bw.value, 10),
+            rank2_pct: parseInt(rank2.value, 10),
+            rat: rat.value,
+            rsrq_db: rsrqVal
+          });
+        }
+      }
+      return carriers;
+    }
+
+    function fetchDASAndUpdateComparison() {
+      const dasCarriers = getDASCarriers();
+      if (dasCarriers.length === 0) {
+        dasExpectedDlEl.textContent = '—';
+        document.getElementById('das-user-dl').textContent = '—';
+        document.getElementById('das-protocol-overhead-value').textContent = '10';
+        dasPotentialDlEl.textContent = '—';
+        dasTotalBandwidthEl.textContent = '—';
+        lastDASExpected = null;
+        lastDASPotential = null;
+        lastDASPct = null;
+        updateComparison();
+        return;
+      }
+      const dasCongestionVal = document.getElementById('das-congestion-factor').value;
+      const protocolOverheadPctDAS = parseInt(document.getElementById('protocol-overhead').value, 10);
+      const dasBody = {
+        carriers: dasCarriers,
+        calibration_offset_dbm: parseFloat(calibrationOffsetEl.value) || 0,
+        protocol_overhead_pct: (Number.isNaN(protocolOverheadPctDAS) || protocolOverheadPctDAS < 0) ? 10 : Math.min(30, protocolOverheadPctDAS),
+        scenario_enabled: scenarioOnEl.checked,
+        environment: environmentEl.value,
+        time_of_day: timeOfDayEl.value,
+        day_of_week: dayOfWeekEl.value
+      };
+      if (dasCongestionVal !== '') {
+        dasBody.congestion_factor_override = parseFloat(dasCongestionVal);
+      }
+      fetch('/api/expected-dl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dasBody)
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            dasExpectedDlEl.textContent = 'Error';
+            document.getElementById('das-user-dl').textContent = '—';
+            document.getElementById('das-protocol-overhead-value').textContent = '10';
+            dasPotentialDlEl.textContent = '—';
+            dasTotalBandwidthEl.textContent = '—';
+            lastDASExpected = null;
+            lastDASPotential = null;
+            lastDASPct = null;
+          } else {
+            let dlMbps = data.expected_dl_mbps;
+            if (dlMbps == null || (typeof dlMbps === 'number' && Number.isNaN(dlMbps))) {
+              const per = data.per_carrier_mbps;
+              dlMbps = Array.isArray(per) && per.length ? per.reduce((a, b) => a + Number(b), 0) : null;
+            } else {
+              dlMbps = Number(dlMbps);
+            }
+            const potentialVal = (data.potential_dl_mbps != null && !Number.isNaN(Number(data.potential_dl_mbps)))
+              ? Number(data.potential_dl_mbps) : (data.per_carrier_mbps && data.per_carrier_mbps.length ? data.per_carrier_mbps.reduce((a, b) => a + Number(b), 0) : null);
+            dasExpectedDlEl.textContent = formatSpeedMbps(dlMbps);
+            const dasPctOverhead = data.protocol_overhead_pct != null ? Number(data.protocol_overhead_pct) : 10;
+            document.getElementById('das-protocol-overhead-value').textContent = dasPctOverhead;
+            const dasUserDl = data.user_dl_mbps != null ? Number(data.user_dl_mbps) : (dlMbps != null && !Number.isNaN(dlMbps) ? dlMbps * (1 - dasPctOverhead / 100) : null);
+            document.getElementById('das-user-dl').textContent = formatSpeedMbps(dasUserDl);
+            dasPotentialDlEl.textContent = formatSpeedMbps(potentialVal);
+            const totalBw = dasCarriers.reduce((s, c) => s + (Number(c.bw_mhz) || 0), 0);
+            dasTotalBandwidthEl.textContent = totalBw > 0 ? String(totalBw) : '—';
+            lastDASExpected = dlMbps != null ? Number(dlMbps) : null;
+            lastDASPotential = potentialVal != null ? Number(potentialVal) : null;
+            lastDASPct = (lastMnoAvgBenchmark4g != null && lastMnoAvgBenchmark4g > 0 && lastDASExpected != null)
+              ? Math.round(1000 * lastDASExpected / lastMnoAvgBenchmark4g) / 10 : null;
+          }
+          updateComparison();
+        })
+        .catch(() => {
+          dasExpectedDlEl.textContent = '—';
+          document.getElementById('das-user-dl').textContent = '—';
+          document.getElementById('das-protocol-overhead-value').textContent = '10';
+          dasPotentialDlEl.textContent = '—';
+          dasTotalBandwidthEl.textContent = '—';
+          lastDASExpected = null;
+          lastDASPotential = null;
+          lastDASPct = null;
+          updateComparison();
+        });
+    }
+
+    function fetchResult() {
+      const carriers = getCarriers();
+      if (carriers.length === 0) {
+        expectedDlEl.textContent = '—';
+        potentialDlEl.textContent = '—';
+        document.getElementById('user-dl').textContent = '—';
+        document.getElementById('protocol-overhead-value').textContent = '10';
+        document.getElementById('functional-threshold-value').textContent = '—';
+        document.getElementById('functional-dl').textContent = '—';
+        totalBandwidthEl.textContent = '—';
+        calibrationNoteEl.textContent = '';
+        scenarioFactorDisplayEl.textContent = 'Factor applied: —';
+        nrCaveatEl.style.display = 'none';
+        mcsRsrpListEl.textContent = '—';
+        seListEl.innerHTML = '';
+        seOverallEl.textContent = '';
+        mnoYearEl.textContent = '';
+        mnoSourceEl.textContent = '';
+        mnoTbody5gEl.innerHTML = '';
+        mnoTbodyOverallEl.innerHTML = '';
+        figureOfMeritBlockEl.style.display = 'none';
+        figureOfMeritValueEl.textContent = '—';
+        figureOfMeritBarEl.innerHTML = '';
+        figureOfMeritScaleMarkerEl.style.display = 'none';
+        lastExistingExpected = null;
+        lastExistingPotential = null;
+        lastExistingPct = null;
+        lastMnoAvgBenchmark4g = null;
+        fetchDASAndUpdateComparison();
+        return;
+      }
+      const protocolOverheadPct = parseInt(document.getElementById('protocol-overhead').value, 10);
+      fetch('/api/expected-dl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify((() => {
+          const body = {
+            carriers,
+            calibration_offset_dbm: parseFloat(calibrationOffsetEl.value) || 0,
+            protocol_overhead_pct: (Number.isNaN(protocolOverheadPct) || protocolOverheadPct < 0) ? 10 : Math.min(30, protocolOverheadPct),
+            scenario_enabled: scenarioOnEl.checked,
+            environment: environmentEl.value,
+            time_of_day: timeOfDayEl.value,
+            day_of_week: dayOfWeekEl.value
+          };
+          const ftVal = document.getElementById('functional-threshold').value.trim();
+          if (ftVal !== '') {
+            const ft = parseFloat(ftVal);
+            if (!Number.isNaN(ft) && ft >= -124 && ft <= -50) body.functional_threshold_dbm = ft;
+          }
+          return body;
+        })())
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            expectedDlEl.textContent = 'Error';
+            potentialDlEl.textContent = '—';
+            document.getElementById('user-dl').textContent = '—';
+            document.getElementById('protocol-overhead-value').textContent = '10';
+            document.getElementById('functional-threshold-value').textContent = '—';
+            document.getElementById('functional-dl').textContent = '—';
+            totalBandwidthEl.textContent = '—';
+            calibrationNoteEl.textContent = '';
+            scenarioFactorDisplayEl.textContent = 'Factor applied: —';
+            nrCaveatEl.style.display = 'none';
+            mcsRsrpListEl.textContent = '—';
+            seListEl.innerHTML = '';
+            seOverallEl.textContent = '';
+            mnoYearEl.textContent = '';
+            mnoSourceEl.textContent = '';
+            mnoTbody5gEl.innerHTML = '';
+            mnoTbodyOverallEl.innerHTML = '';
+            figureOfMeritBlockEl.style.display = 'none';
+            figureOfMeritValueEl.textContent = '—';
+            figureOfMeritBarEl.innerHTML = '';
+            figureOfMeritScaleMarkerEl.style.display = 'none';
+            lastExistingExpected = null;
+            lastExistingPotential = null;
+            lastExistingPct = null;
+            lastMnoAvgBenchmark4g = null;
+            fetchDASAndUpdateComparison();
+            return;
+          }
+          const cf = data.congestion_factor != null ? Number(data.congestion_factor) : 1;
+          const envLabel = environmentEl.options[environmentEl.selectedIndex].text;
+          const timeLabel = timeOfDayEl.options[timeOfDayEl.selectedIndex].text;
+          const dayLabel = dayOfWeekEl.options[dayOfWeekEl.selectedIndex].text;
+          scenarioFactorDisplayEl.textContent = scenarioOnEl.checked
+            ? `Factor applied: ${cf} (${envLabel}, ${timeLabel}, ${dayLabel})`
+            : `Factor applied: 1.0 (scenario off)`;
+          // Accept number or numeric string; fallback to sum of per_carrier_mbps if expected_dl_mbps missing
+          let dlMbps = data.expected_dl_mbps;
+          if (dlMbps == null || (typeof dlMbps === 'number' && Number.isNaN(dlMbps))) {
+            const per = data.per_carrier_mbps;
+            dlMbps = Array.isArray(per) && per.length ? per.reduce((a, b) => a + Number(b), 0) : null;
+          } else {
+            dlMbps = Number(dlMbps);
+          }
+          expectedDlEl.textContent = formatSpeedMbps(dlMbps);
+          const pctOverhead = data.protocol_overhead_pct != null ? Number(data.protocol_overhead_pct) : 10;
+          document.getElementById('protocol-overhead-value').textContent = pctOverhead;
+          const userDl = data.user_dl_mbps != null ? Number(data.user_dl_mbps) : (dlMbps != null && !Number.isNaN(dlMbps) ? dlMbps * (1 - pctOverhead / 100) : null);
+          document.getElementById('user-dl').textContent = formatSpeedMbps(userDl);
+          const funcThresh = data.functional_threshold_dbm;
+          const funcMbps = data.functional_dl_mbps;
+          document.getElementById('functional-threshold-value').textContent = (funcThresh != null && funcThresh !== '') ? funcThresh : '—';
+          document.getElementById('functional-dl').textContent = (funcMbps != null && !Number.isNaN(funcMbps)) ? formatSpeedMbps(funcMbps) + ' Mbit/s' : '—';
+          const potentialMbps = data.potential_dl_mbps != null ? Number(data.potential_dl_mbps) : null;
+          const potentialVal = (potentialMbps != null && !Number.isNaN(potentialMbps)) ? potentialMbps : (data.per_carrier_mbps && data.per_carrier_mbps.length ? data.per_carrier_mbps.reduce((a, b) => a + Number(b), 0) : null);
+          potentialDlEl.textContent = formatSpeedMbps(potentialVal);
+          const totalBw = carriers.reduce((s, c) => s + (Number(c.bw_mhz) || 0), 0);
+          totalBandwidthEl.textContent = totalBw > 0 ? String(totalBw) : '—';
+          lastExistingExpected = dlMbps != null ? Number(dlMbps) : null;
+          lastExistingPotential = potentialVal != null ? Number(potentialVal) : null;
+          if (data.has_nr_carriers) {
+            nrCaveatEl.textContent = 'NR results are indicative; the model is not NR-specific (see document 7.2). Use SS-RSRP for NR carriers.';
+            nrCaveatEl.style.display = 'block';
+          } else {
+            nrCaveatEl.style.display = 'none';
+          }
+          const mcsRsrp = data.per_carrier_estimated_mcs_rsrp || [];
+          const rats = data.carrier_rats || [];
+          if (mcsRsrp.length) {
+            mcsRsrpListEl.innerHTML = mcsRsrp.map((m, i) => `Carrier ${i + 1}${rats[i] ? ` (${rats[i]})` : ''}: ${m != null ? m : '—'}`).join('<br>');
+          } else {
+            mcsRsrpListEl.textContent = '—';
+          }
+          const se = data.per_carrier_spectral_efficiency || [];
+          const perCarrierMbps = data.per_carrier_mbps || [];
+          const mcsEff = data.per_carrier_estimated_mcs || [];
+          const perCarrierMod = data.per_carrier_modulation || [];
+          seListEl.innerHTML = se.map((c, i) => {
+            const ratLabel = rats[i] ? ` (${rats[i]})` : '';
+            const mcsE = mcsEff[i];
+            const mcsR = mcsRsrp[i];
+            const mod = perCarrierMod[i];
+            let effMcsLine = '';
+            if (mcsE != null) {
+              const sameAsRsrp = (mcsR != null && mcsE === mcsR);
+              const mcsLabel = sameAsRsrp ? 'MCS' : 'effective MCS';
+              effMcsLine = mod ? `${mcsLabel}: ${mcsE} · ${mod}<br>` : `${mcsLabel}: ${mcsE}<br>`;
+            } else if (mcsR != null) {
+              effMcsLine = `estimated MCS from RSRP: ${mcsR}<br>`;
+            }
+            const throughputPart = (perCarrierMbps[i] != null && !Number.isNaN(Number(perCarrierMbps[i])))
+              ? formatSpeedMbps(Number(perCarrierMbps[i])) + ' Mbit/s'
+              : '—';
+            const lines = [`Carrier ${i + 1}${ratLabel}:`, effMcsLine + `η_raw: ${c.eta_raw_mbps_per_mhz} Mbit/s/MHz`, `η_eff: ${c.eta_eff_mbps_per_mhz} Mbit/s/MHz`, `throughput: ${throughputPart}`].filter(Boolean).join('<br>');
+            return `<li>${lines}</li>`;
+          }).join('');
+          const eff = data.effective_spectral_efficiency_mbps_per_mhz;
+          seOverallEl.textContent = eff != null
+            ? (carriers.length > 1
+              ? `Multiple carrier bandwidth-weighted effective η: ${eff} Mbit/s/MHz`
+              : `Effective η: ${eff} Mbit/s/MHz`)
+            : '';
+
+          const comp = data.mno_benchmark_comparison || [];
+          const is5g = row => row.benchmark_type === '5g' || row.source === 'Ookla 5G median (H2 2025)';
+          const is4g = row => row.benchmark_type === '4g' || row.source === 'Ookla 4G median (H2 2025)';
+          const comp5g = comp.filter(is5g);
+          const comp4g = comp.filter(is4g);
+          const compOverall = comp.filter(row => !is5g(row) && !is4g(row));
+          mnoYearEl.textContent = data.benchmark_year ? `Snapshot: ${data.benchmark_year}` : '';
+          mnoSourceEl.textContent = data.benchmark_source || '';
+          const calOff = data.calibration_offset_dbm;
+          const rsrqPer = data.per_carrier_rsrq_db || [];
+          const rsrqFactors = data.per_carrier_rsrq_de_rate_factor || [];
+          const rsrqNote = rsrqPer.some((r, i) => r != null && rsrqFactors[i] != null && rsrqFactors[i] < 1)
+            ? 'RSRQ de-rate applied per carrier'
+            : '';
+          calibrationNoteEl.textContent = [
+            (calOff != null && Number(calOff) !== 0) ? `RSRP calibration: ${Number(calOff) > 0 ? '+' : ''}${Number(calOff)} dB applied` : '',
+            rsrqNote
+          ].filter(Boolean).join(' · ') || '';
+          // Bar scale 0–120%: red 0–70%, amber 70–100%, green 100–120%
+          function pctBar(pct) {
+            const pos = Math.min(100, (Number(pct) / 120) * 100);
+            return `<span class="pct-bar-wrap"><span class="pct-bar-track"><span class="pct-bar-marker" style="left:${pos}%"></span></span><span>${pct}%</span></span>`;
+          }
+          // USO row first (same format as MNO): % of benchmark, recommendation
+          const usoRow = (dlMbps != null && !Number.isNaN(dlMbps))
+            ? (() => {
+                const pct = Math.round(1000 * dlMbps / USO_MBPS) / 10;
+                const rec = pct < 100 ? 'Bandwidth focussed coverage enhancement recommended (NHIB DAS)' : 'Nominal Service existing';
+                return `<tr><td>USO (broadband threshold)</td><td class="num">${formatSpeedMbps(USO_MBPS)}</td><td class="pct-cell">${pctBar(pct)}</td><td>${rec}</td></tr>`;
+              })()
+            : '';
+          function buildMnoRow(row) {
+            const rec = row.percent_of_national < 100 ? 'Bandwidth focussed coverage enhancement recommended (NHIB DAS)' : 'Nominal Service existing';
+            const benchmarkLabel = row.source ? `${row.mno} – ${row.source}` : row.mno;
+            return `<tr><td>${benchmarkLabel}</td><td class="num">${formatSpeedMbps(row.national_benchmark_mbps)}</td><td class="pct-cell">${pctBar(row.percent_of_national)}</td><td>${rec}</td></tr>`;
+          }
+          function buildGroupedRow(row) {
+            const rec = row.percent_of_national < 100 ? 'Bandwidth focussed coverage enhancement recommended (NHIB DAS)' : 'Nominal Service existing';
+            const benchmarkLabel = row.source || row.mno;
+            return `<tr><td>${benchmarkLabel}</td><td class="num">${formatSpeedMbps(row.national_benchmark_mbps)}</td><td class="pct-cell">${pctBar(row.percent_of_national)}</td><td>${rec}</td></tr>`;
+          }
+          function buildReferenceRow(row) {
+            const label = row.source || row.mno;
+            return `<tr><td>${label}</td><td class="num">${formatSpeedMbps(row.national_benchmark_mbps)}</td><td class="pct-cell">—</td><td>—</td></tr>`;
+          }
+          const MNO_ORDER = [mnoSelectEl.value];
+          const SOURCE_ORDER = ['Opensignal Download Speed Experience (Jan 2026)', 'RootMetrics (UK)', 'Ookla 4G median (H2 2025)'];
+          const all4gRows = [...compOverall, ...comp4g];
+          const industryRows = all4gRows.filter(r => !MNO_ORDER.includes(r.mno));
+          const byMno = {};
+          MNO_ORDER.forEach(m => { byMno[m] = []; });
+          all4gRows.filter(r => MNO_ORDER.includes(r.mno)).forEach(r => { byMno[r.mno].push(r); });
+          const sortBySource = (a, b) => {
+            const i = SOURCE_ORDER.indexOf(a.source || '');
+            const j = SOURCE_ORDER.indexOf(b.source || '');
+            if (i !== -1 && j !== -1) return i - j;
+            return String(a.source || '').localeCompare(b.source || '');
+          };
+          let grouped4gHtml = usoRow;
+          let figureOfMeritPct = null;
+          MNO_ORDER.forEach(mno => {
+            const rows = (byMno[mno] || []).sort(sortBySource);
+            if (rows.length) {
+              grouped4gHtml += `<tr class="mno-group-header"><td colspan="4">${mno}</td></tr>`;
+              grouped4gHtml += rows.map(buildReferenceRow).join('');
+              const avgSpeed = Math.round(10 * rows.reduce((s, r) => s + Number(r.national_benchmark_mbps), 0) / rows.length) / 10;
+              const pctAvg = (dlMbps != null && !Number.isNaN(dlMbps) && avgSpeed > 0)
+                ? Math.round(1000 * dlMbps / avgSpeed) / 10 : 0;
+              figureOfMeritPct = pctAvg;
+              lastExistingPct = figureOfMeritPct;
+              lastMnoAvgBenchmark4g = avgSpeed;
+              const recAvg = pctAvg < 100 ? 'Bandwidth focussed coverage enhancement recommended (NHIB DAS)' : 'Nominal Service existing';
+              grouped4gHtml += `<tr><td>Average</td><td class="num">${formatSpeedMbps(avgSpeed)}</td><td class="pct-cell">${pctBar(pctAvg)}</td><td>${recAvg}</td></tr>`;
+            }
+          });
+          if (figureOfMeritPct == null) {
+            lastExistingPct = null;
+            lastMnoAvgBenchmark4g = null;
+          }
+          if (figureOfMeritPct != null) {
+            figureOfMeritBlockEl.style.display = 'block';
+            figureOfMeritValueEl.textContent = `${figureOfMeritPct}%`;
+            const pos = Math.min(100, (Number(figureOfMeritPct) / 120) * 100);
+            figureOfMeritBarEl.innerHTML = `<span class="fom-bar-track"><span class="fom-bar-marker" style="left:${pos}%"></span></span>`;
+            figureOfMeritScaleMarkerEl.style.display = 'block';
+            figureOfMeritScaleMarkerEl.style.left = pos + '%';
+          } else {
+            figureOfMeritBlockEl.style.display = 'none';
+            figureOfMeritValueEl.textContent = '—';
+            figureOfMeritBarEl.innerHTML = '';
+            figureOfMeritScaleMarkerEl.style.display = 'none';
+          }
+          if (industryRows.length && MNO_ORDER.length > 1) {
+            grouped4gHtml += `<tr class="mno-group-header"><td colspan="4">Industry average</td></tr>`;
+            industryRows.forEach(row => {
+              const rec = row.percent_of_national < 100 ? 'Bandwidth focussed coverage enhancement recommended (NHIB DAS)' : 'Nominal Service existing';
+              grouped4gHtml += `<tr><td>All benchmarks</td><td class="num">${formatSpeedMbps(row.national_benchmark_mbps)}</td><td class="pct-cell">${pctBar(row.percent_of_national)}</td><td>${rec}</td></tr>`;
+            });
+          }
+          const MNO_ORDER_5G = [mnoSelectEl.value];
+          const SOURCE_ORDER_5G = ['Ookla 5G median (H2 2025)'];
+          const industryRows5g = comp5g.filter(r => !MNO_ORDER_5G.includes(r.mno));
+          const byMno5g = {};
+          MNO_ORDER_5G.forEach(m => { byMno5g[m] = []; });
+          comp5g.filter(r => MNO_ORDER_5G.includes(r.mno)).forEach(r => { byMno5g[r.mno].push(r); });
+          const sortBySource5g = (a, b) => {
+            const i = SOURCE_ORDER_5G.indexOf(a.source || '');
+            const j = SOURCE_ORDER_5G.indexOf(b.source || '');
+            if (i !== -1 && j !== -1) return i - j;
+            return String(a.source || '').localeCompare(b.source || '');
+          };
+          let grouped5gHtml = '';
+          MNO_ORDER_5G.forEach(mno => {
+            const rows = (byMno5g[mno] || []).sort(sortBySource5g);
+            if (rows.length) {
+              grouped5gHtml += `<tr class="mno-group-header"><td colspan="4">${mno}</td></tr>`;
+              grouped5gHtml += rows.map(buildGroupedRow).join('');
+            }
+          });
+          if (industryRows5g.length && MNO_ORDER_5G.length > 1) {
+            grouped5gHtml += `<tr class="mno-group-header"><td colspan="4">Industry average</td></tr>`;
+            industryRows5g.forEach(row => {
+              const rec = row.percent_of_national < 100 ? 'Bandwidth focussed coverage enhancement recommended (NHIB DAS)' : 'Nominal Service existing';
+              grouped5gHtml += `<tr><td>All benchmarks</td><td class="num">${formatSpeedMbps(row.national_benchmark_mbps)}</td><td class="pct-cell">${pctBar(row.percent_of_national)}</td><td>${rec}</td></tr>`;
+            });
+          }
+          mnoTbody5gEl.innerHTML = grouped5gHtml;
+          mnoTbodyOverallEl.innerHTML = grouped4gHtml;
+          fetchDASAndUpdateComparison();
+        })
+        .catch(() => {
+          expectedDlEl.textContent = '—';
+          potentialDlEl.textContent = '—';
+          totalBandwidthEl.textContent = '—';
+          lastExistingExpected = null;
+          lastExistingPotential = null;
+          lastExistingPct = null;
+          lastMnoAvgBenchmark4g = null;
+          calibrationNoteEl.textContent = '';
+          scenarioFactorDisplayEl.textContent = 'Factor applied: —';
+          nrCaveatEl.style.display = 'none';
+          mcsRsrpListEl.textContent = '—';
+          seListEl.innerHTML = '';
+          seOverallEl.textContent = '';
+          mnoYearEl.textContent = '';
+          mnoSourceEl.textContent = '';
+          mnoTbody5gEl.innerHTML = '';
+          mnoTbodyOverallEl.innerHTML = '';
+          figureOfMeritBlockEl.style.display = 'none';
+          figureOfMeritValueEl.textContent = '—';
+          figureOfMeritBarEl.innerHTML = '';
+          figureOfMeritScaleMarkerEl.style.display = 'none';
+          fetchDASAndUpdateComparison();
+        });
+    }
+
+    function resetToDefaults() {
+      mnoSelectEl.value = 'EE';
+      scenarioOnEl.checked = false;
+      setScenarioControlsState();
+      environmentEl.value = 'urban';
+      timeOfDayEl.value = 'off_peak';
+      dayOfWeekEl.value = 'weekday';
+      calibrationOffsetEl.value = '10';
+      numCarriersEl.value = '3';
+      renderCarrierRows();
+      fetchResult();
+    }
+
+    function setScenarioControlsState() {
+      scenarioControlsEl.classList.toggle('disabled', !scenarioOnEl.checked);
+    }
+    document.getElementById('reset-defaults').addEventListener('click', resetToDefaults);
+    scenarioOnEl.addEventListener('change', () => { setScenarioControlsState(); fetchResult(); });
+    setScenarioControlsState();
+    mnoSelectEl.addEventListener('change', fetchResult);
+    numCarriersEl.addEventListener('change', renderCarrierRows);
+    environmentEl.addEventListener('change', fetchResult);
+    timeOfDayEl.addEventListener('change', fetchResult);
+    dayOfWeekEl.addEventListener('change', fetchResult);
+    calibrationOffsetEl.addEventListener('change', fetchResult);
+    calibrationOffsetEl.addEventListener('input', fetchResult);
+    const protocolOverheadEl = document.getElementById('protocol-overhead');
+    if (protocolOverheadEl) {
+      protocolOverheadEl.addEventListener('change', fetchResult);
+      protocolOverheadEl.addEventListener('input', fetchResult);
+    }
+    const functionalThresholdEl = document.getElementById('functional-threshold');
+    if (functionalThresholdEl) {
+      functionalThresholdEl.addEventListener('change', fetchResult);
+      functionalThresholdEl.addEventListener('input', fetchResult);
+    }
+    renderCarrierRows();
+    buildSurveyCarrierRows();
+    const surveyNumCarriersEl = document.getElementById('survey-num-carriers');
+    if (surveyNumCarriersEl) surveyNumCarriersEl.addEventListener('change', buildSurveyCarrierRows);
+    const surveyThresholdEl = document.getElementById('survey-threshold');
+    const surveyThresholdLabelEl = document.getElementById('survey-threshold-label');
+    function updateSurveyThresholdLabel() {
+      if (surveyThresholdLabelEl && surveyThresholdEl) surveyThresholdLabelEl.textContent = surveyThresholdEl.value;
+    }
+    if (surveyThresholdEl) {
+      surveyThresholdEl.addEventListener('input', updateSurveyThresholdLabel);
+      surveyThresholdEl.addEventListener('change', updateSurveyThresholdLabel);
+      updateSurveyThresholdLabel();
+    }
+
+    document.getElementById('das-bw-mhz').addEventListener('change', fetchResult);
+    document.getElementById('das-rsrp').addEventListener('input', fetchResult);
+    document.getElementById('das-rsrp').addEventListener('change', fetchResult);
+    document.getElementById('das-rsrq').addEventListener('input', fetchResult);
+    document.getElementById('das-rsrq').addEventListener('change', fetchResult);
+    document.getElementById('das-rank2-pct').addEventListener('change', fetchResult);
+    document.getElementById('das-congestion-factor').addEventListener('change', fetchResult);
+
+    if (typeof mermaid !== 'undefined') {
+      mermaid.initialize({ startOnLoad: false });
+      mermaid.run({ querySelector: '#flow-diagram-mermaid .mermaid', suppressErrors: true }).catch(function() {});
+      document.getElementById('flow-diagram-details').addEventListener('toggle', function once() {
+        if (this.open && document.querySelector('#flow-diagram-mermaid .mermaid:not([data-processed])')) {
+          mermaid.run({ querySelector: '#flow-diagram-mermaid .mermaid', suppressErrors: true }).catch(function() {});
+        }
+      });
+    }
+  </script>
+</body>
+</html>

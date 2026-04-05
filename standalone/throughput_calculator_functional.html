@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Throughput calculator (functional model – peak/5)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 520px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1rem; margin: 1rem 0 0.5rem 0; }
+    label { display: block; margin-top: 0.5rem; font-weight: 500; }
+    .carrier-row { border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 4px; }
+    .carrier-row h3 { margin: 0 0 0.5rem 0; font-size: 0.95rem; }
+    input[type="number"], select { padding: 0.25rem 0.5rem; margin-top: 0.2rem; }
+    .muted { font-size: 0.9rem; color: #555; margin-top: 0.25rem; }
+    .comparison { margin-top: 1.5rem; padding: 1rem; background: #f5f5f5; border-radius: 6px; border: 1px solid #ddd; }
+    .comparison table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .comparison th, .comparison td { text-align: left; padding: 0.35rem 0.5rem 0.35rem 0; }
+    .comparison th { font-weight: 600; }
+    .comparison .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .comparison .pct { font-weight: 500; }
+    .comparison .pct-bar { display: inline-block; height: 0.5rem; border-radius: 2px; min-width: 2px; max-width: 8rem; vertical-align: middle; margin-right: 0.35rem; }
+  </style>
+</head>
+<body>
+  <h1>Throughput calculator (functional model – peak/5)</h1>
+  <p class="muted">Enter the % of measurements ≥ threshold per carrier and each carrier's bandwidth. Each carrier contributes (pct/100) × 30 Mbit/s per 20 MHz. No server, no Python — runs in the browser.</p>
+
+  <h2>Survey style (% above threshold)</h2>
+  <label for="survey-threshold">Threshold (dBm)</label>
+  <input type="number" id="survey-threshold" value="-105" min="-124" max="-50" step="1" style="width: 5rem;">
+  <label for="survey-num">Number of carriers</label>
+  <select id="survey-num" style="margin-bottom: 0.5rem;">
+    <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
+    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+    <option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+  </select>
+  <div id="survey-carriers"></div>
+  <p style="margin-top: 0.75rem;"><strong>Site indirect throughput:</strong> <strong id="survey-result">—</strong> Mbit/s</p>
+
+  <div class="comparison" id="comparison">
+    <h2>UK MNO comparison (2025–2026)</h2>
+    <p class="muted">Compare your expected download to national benchmarks. Sources: Opensignal Download Speed Experience (Jan 2026), RootMetrics (UK), Ookla 4G median (H2 2025).</p>
+    <label for="mno-select">MNO</label>
+    <select id="mno-select" style="margin-bottom: 0.5rem;">
+      <option value="EE" selected>EE</option>
+      <option value="Vodafone">Vodafone</option>
+      <option value="Three">Three</option>
+      <option value="VMO2">VMO2</option>
+    </select>
+    <table aria-label="UK MNO benchmark comparison">
+      <thead>
+        <tr><th>Benchmark</th><th class="num">Speed (Mbit/s)</th><th class="num">% of benchmark</th><th>Note</th></tr>
+      </thead>
+      <tbody id="mno-tbody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const PEAK_20MHZ_2X2 = 150;
+    const DIVISOR = 5;
+    const MBPS_PER_20MHZ = PEAK_20MHZ_2X2 / DIVISOR;  // 30
+
+    const BANDWIDTHS = [5, 10, 15, 20, 25, 30];
+
+    // UK MNO national benchmarks 2025–2026 (Opensignal, RootMetrics, Ookla 4G)
+    const BENCHMARK_SOURCES = [
+      { label: 'Opensignal Download Speed Experience (Jan 2026)', type: 'overall', EE: 53.2, Vodafone: 37.5, Three: 51.0, VMO2: 32.8 },
+      { label: 'Ookla 4G median (H2 2025)', type: '4g', EE: 48, Vodafone: 42, Three: 40, VMO2: 32 },
+      { label: 'RootMetrics (UK)', type: 'overall', EE: 50.0, Vodafone: 38.0, Three: 48.0, VMO2: 30.0 }
+    ];
+    let lastExpectedMbps = null;
+
+    function formatMbps(val) {
+      if (val == null || Number.isNaN(val)) return '—';
+      const n = Number(val);
+      if (n < 0.01) return n.toFixed(2);
+      if (n >= 10) return Math.round(n).toString();
+      return n.toFixed(1);
+    }
+
+    function pctBar(pct) {
+      const p = Math.min(120, Math.max(0, Number(pct)));
+      const width = (p / 120) * 100;
+      const color = p >= 100 ? '#0a0' : p >= 70 ? '#e6a800' : '#c00';
+      return '<span class="pct-bar" style="width:' + (width * 0.5) + 'rem;background:' + color + '"></span>';
+    }
+
+    function updateComparison(expectedMbps) {
+      const mno = document.getElementById('mno-select').value;
+      const tbody = document.getElementById('mno-tbody');
+      if (expectedMbps == null || expectedMbps <= 0 || !tbody) {
+        tbody.innerHTML = '<tr><td colspan="4" class="muted">Enter survey data above to see comparison.</td></tr>';
+        return;
+      }
+      let html = '';
+      BENCHMARK_SOURCES.forEach(function (src) {
+        const bench = src[mno];
+        if (bench == null) return;
+        const pct = Math.round((1000 * expectedMbps) / bench) / 10;
+        const note = pct >= 100 ? 'At or above benchmark' : 'Below benchmark';
+        html += '<tr><td>' + src.label + '</td><td class="num">' + formatMbps(bench) + '</td><td class="num pct">' + pctBar(pct) + pct + '%</td><td>' + note + '</td></tr>';
+      });
+      tbody.innerHTML = html || '<tr><td colspan="4" class="muted">No data for this MNO.</td></tr>';
+    }
+
+    function buildSurveyRows() {
+      const n = parseInt(document.getElementById('survey-num').value, 10);
+      const container = document.getElementById('survey-carriers');
+      container.innerHTML = '';
+      for (let i = 0; i < n; i++) {
+        const row = document.createElement('div');
+        row.className = 'carrier-row';
+        row.innerHTML = `
+          <h3>Carrier ${i + 1}</h3>
+          <label>% of measurements ≥ threshold (0–100)</label>
+          <input type="number" id="survey-pct-${i}" value="50" min="0" max="100" step="1" style="width: 5rem;">
+          <label>Bandwidth (MHz)</label>
+          <select id="survey-bw-${i}">${BANDWIDTHS.map(b => `<option value="${b}"${b === 20 ? ' selected' : ''}>${b}</option>`).join('')}</select>
+        `;
+        container.appendChild(row);
+        document.getElementById(`survey-pct-${i}`).addEventListener('input', updateSurvey);
+        document.getElementById(`survey-bw-${i}`).addEventListener('change', updateSurvey);
+      }
+      updateSurvey();
+    }
+
+    function updateSurvey() {
+      const n = parseInt(document.getElementById('survey-num').value, 10);
+      let total = 0;
+      for (let i = 0; i < n; i++) {
+        const pctEl = document.getElementById(`survey-pct-${i}`);
+        const bwEl = document.getElementById(`survey-bw-${i}`);
+        if (!pctEl || !bwEl) continue;
+        const pct = Math.max(0, Math.min(100, parseFloat(pctEl.value) || 0)) / 100;
+        const bw = parseFloat(bwEl.value) || 20;
+        total += pct * MBPS_PER_20MHZ * (bw / 20);
+      }
+      const rounded = Math.round(total * 100) / 100;
+      lastExpectedMbps = rounded;
+      document.getElementById('survey-result').textContent = formatMbps(rounded);
+      updateComparison(rounded);
+    }
+
+    document.getElementById('mno-select').addEventListener('change', function () { updateComparison(lastExpectedMbps); });
+    document.getElementById('survey-threshold').addEventListener('input', updateSurvey);
+    document.getElementById('survey-num').addEventListener('change', buildSurveyRows);
+
+    buildSurveyRows();
+  </script>
+</body>
+</html>
