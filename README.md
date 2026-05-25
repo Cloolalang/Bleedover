@@ -3,8 +3,10 @@
 ## What you get
 This folder contains a small Python web app:
 - `app.py` (Flask server)
-- `throughput_model.py` (all throughput calculations)
-- `templates/index.html` (the web UI)
+- `throughput_model.py` (throughput calculations)
+- `power_budget_model.py` (Zinwave repeater-fed DAS downlink power budget)
+- `templates/index.html` (throughput UI)
+- `templates/power_budget.html` (power budget UI)
 - `requirements.txt` (Python dependencies)
 
 ## Prerequisites (for the recipient)
@@ -30,7 +32,8 @@ python -m throughput_calculator.app
 ```
 
 Open in a browser:
-- `http://127.0.0.1:5000`
+- Throughput calculator: `http://127.0.0.1:5000`
+- Zinwave power budget: `http://127.0.0.1:5000/power-budget`
 
 ## Notes / troubleshooting
 - The UI loads the Mermaid diagram from a CDN, so **internet access** is needed for that diagram to render.

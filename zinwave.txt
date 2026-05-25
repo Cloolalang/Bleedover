@@ -1,0 +1,786 @@
+Here is a clean, structured text summary of your link budget design. You can copy and paste this directly into a standard text file (`.txt`) for your site documentation or commissioning records.
+
+```text
+========================================================================
+ZINWAVE 5000 DAS COMMISSIONING & LINK BUDGET SUMMARY
+========================================================================
+
+SYSTEM INFRASTRUCTURE:
+- DAS Platform:            Zinwave 5000 (UNItivity)
+- Signal Source Type:      LTE Macro BTS / Small Cells (6 Carriers)
+- Interface Type:          Point of Interface (POI) with Per-Carrier Pads
+- Combining Topology:      Pre-combined into ONE physical Service Module Port
+- Remote Unit Type:        Standard Optical Remote Unit (RU)
+- Target RU Max Output:    +20 dBm Total Composite Power
+
+========================================================================
+RF LOGIC & CONSTRAINTS
+========================================================================
+1. LTE Power Breathing:    
+   Composite signal power fluctuates 12 dB between Cell Full Load (Peak)
+   and Cell Idle (Valley). Configuration must size for the Peak.
+
+2. Multi-Carrier Back-off: 
+   6 carriers add ~7.8 dB of power when combined [10*log10(6)].
+   To prevent RU amplifier saturation (+20 dBm max), individual 
+   carriers are backed off to +12.2 dBm max at the antenna.
+
+3. Zinwave Hardware Windows:
+   - Operating Input Window:   -5 dBm to +15 dBm
+   - Maximum Fiber Link Gain:  25 dB
+
+========================================================================
+COMMISSIONING CONFIGURATION TARGETS
+========================================================================
+
+POI ATTENUATION SETTING (At Cell Full Load):
+- Target Individual Carrier Power:  -2.8 dBm
+- Target Combined Composite Power:  +5.0 dBm
+
+ZINWAVE ELEMENT MANAGER CONFIGURATION:
+- Calculated DL Input Level:        5  (Set to match Full Load Composite)
+- System Active Downlink Gain:      15 dB (Fixed/Locked by Software)
+                                    [+5 dBm input + 15 dB gain = +20 dBm]
+
+========================================================================
+SYSTEM BEHAVIOR MATRIX
+========================================================================
+
+STATE A: CELL AT FULL TRAFFIC LOAD (PEAK PROFILE)
+--------------------------------------------------
+- Per-Carrier Input at Hub:       -2.8 dBm
+- Total Composite Input at Hub:   +5.0 dBm   <-- (Matches Software Spec)
+- DAS Internal Gain:              15.0 dB
+- Per-Carrier Output at RU:       +12.2 dBm
+- Total Composite Output at RU:   +20.0 dBm  <-- (Clean Maximum Coverage)
+- Top-End Hardware Cushion:       10.0 dB Headroom below +15 dBm ceiling
+
+STATE B: CELL AT IDLE / NO TRAFFIC (VALLEY PROFILE)
+--------------------------------------------------
+- Per-Carrier Input at Hub:       -14.8 dBm
+- Total Composite Input at Hub:   -7.0 dBm   
+- DAS Internal Gain:              15.0 dB    <-- (Remains Fixed)
+- Per-Carrier Output at RU:       +0.2 dBm
+- Total Composite Output at RU:   +8.0 dBm
+- Low-End Hardware Stability:     -7.0 dBm composite is safely within
+                                  the clean linear processing window of 
+                                  the Service Module LNA.
+
+========================================================================
+ENGINEERING ADVANTAGES OF THIS DESIGN
+========================================================================
+* Zero Clipping Protection: Sizing for the +5 dBm full-load peak protects
+  the optical lasers from overloading during high-traffic spikes.
+* Pristine Channel Quality (SINR): Keeping the idle composite power at
+  -7 dBm keeps the LTE pilot/reference signals well above the DAS noise 
+  floor, protecting data speeds.
+* Component Longevity: Operating at 15 dB of gain (out of 25 dB max) 
+  keeps internal amplifiers running cool and linearly.
+========================================================================
+
+```
+
+To push the DAS a bit harder and squeeze more coverage out of the system, we can reduce your safety headroom at the Remote Unit (RU). In a multi-carrier setup, "headroom" refers to the safety buffer between the total calculated output of your carriers and the absolute physical maximum ceiling of the hardware ($+20\text{ dBm}$).
+
+If we design for a **$5\text{ dB}$ RU headroom budget**, it means we will allow the 6 combined carriers to peak at exactly **$+15\text{ dBm}$ total composite output** ($20\text{ dBm max} - 5\text{ dB headroom} = 15\text{ dBm}$).
+
+Compared to a standard conservative design, this forces each individual carrier to output a higher wattage, pushing your coverage boundaries further out.
+
+Here is the updated text-file summary with the revised logarithmic math, showing how to balance your POI and set up your Zinwave software for this higher-output configuration.
+
+```text
+========================================================================
+ZINWAVE 5000 DAS COMMISSIONING SUMMARY - HIGH COVERAGE PROFILE
+========================================================================
+
+SYSTEM INFRASTRUCTURE:
+- DAS Platform:            Zinwave 5000 (UNItivity)
+- Signal Source Type:      LTE Macro BTS / Small Cells (6 Carriers)
+- Interface Type:          Point of Interface (POI) with Per-Carrier Pads
+- Combining Topology:      Pre-combined into ONE physical Service Module Port
+- Target RU Max Output:    +15 dBm Total Composite Power (5 dB Hard Headroom)
+
+========================================================================
+HIGH-OUTPUT POWER MATH
+========================================================================
+1. Multi-Carrier Division: 
+   6 carriers add ~7.8 dB of power when combined [10*log10(6)].
+   
+2. Per-Carrier Target Output:
+   To hit a combined +15 dBm total composite output at the RU:
+   Per-Carrier Output = 15 dBm - 7.8 dB = +7.2 dBm
+
+3. Why this improves coverage:
+   By intentionally driving the composite output up to +15 dBm, 
+   individual carriers are pushed out at +7.2 dBm instead of being padded
+   down further, maximizing the footprint of the ceiling antennas.
+
+========================================================================
+COMMISSIONING CONFIGURATION TARGETS (5 dB HEADROOM DESIGN)
+========================================================================
+
+POI ATTENUATION SETTING (At Cell Full Load):
+- Target Individual Carrier Power:  -2.8 dBm
+- Target Combined Composite Power:  +5.0 dBm
+
+ZINWAVE ELEMENT MANAGER CONFIGURATION:
+- Calculated DL Input Level:        0  <-- (Adjusted Down to Boost Gain)
+- System Active Downlink Gain:      10 dB (Fixed/Locked by Software)
+                                    [+5 dBm input + 10 dB gain = +15 dBm]
+
+========================================================================
+SYSTEM BEHAVIOR MATRIX
+========================================================================
+
+STATE A: CELL AT FULL TRAFFIC LOAD (PEAK PROFILE)
+--------------------------------------------------
+- Per-Carrier Input at Hub:       -2.8 dBm
+- Total Composite Input at Hub:   +5.0 dBm   
+- DAS Internal Gain:              10.0 dB
+- Per-Carrier Output at RU:       +7.2 dBm
+- Total Composite Output at RU:   +15.0 dBm  <-- (Target High-Coverage Peak)
+- Safety Margin to Hardware Max:  5.0 dB   
+
+STATE B: CELL AT IDLE / NO TRAFFIC (VALLEY PROFILE)
+--------------------------------------------------
+- Per-Carrier Input at Hub:       -14.8 dBm
+- Total Composite Input at Hub:   -7.0 dBm   
+- DAS Internal Gain:              10.0 dB    <-- (Remains Fixed)
+- Per-Carrier Output at RU:       -4.8 dBm
+- Total Composite Output at RU:   +3.0 dBm
+- Low-End Hardware Stability:     -7.0 dBm composite remains perfectly 
+                                  safe above the physical -5.0 dBm 
+                                  Service Module linear limit.
+
+========================================================================
+FIELD DEPLOYMENT NOTES
+========================================================================
+* Software Adjustment: To get the 10 dB of system gain required for this 
+  profile, you adjust your "Calculated DL Input Level" in the software down 
+  to '0' while physically feeding it '+5 dBm'. This offsets the internal 
+  attenuators to allow a hotter signal to pass to the optical lines.
+* PIM Alert: Forcing the RU to run closer to its physical limits requires 
+  high-quality coaxial jumpers and clean, torqued connections out of the 
+  RU to prevent Passive Intermodulation (PIM) from rising.
+========================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```========================================================================
+ZINWAVE 5000 DAS COMMISSIONING SUMMARY - MAXIMUM COVERAGE PROFILE
+========================================================================
+
+SYSTEM INFRASTRUCTURE:
+- DAS Platform:            Zinwave 5000 (UNItivity)
+- Signal Source Type:      LTE Macro BTS / Small Cells (6 Carriers)
+- Interface Type:          Point of Interface (POI) with Per-Carrier Pads
+- Combining Topology:      Pre-combined into ONE physical Service Module Port
+- Target RU Max Output:    +18 dBm Total Composite Power (2 dB Hard Headroom)
+
+========================================================================
+MAXIMUM-OUTPUT POWER MATH
+========================================================================
+1. Multi-Carrier Division: 
+   6 carriers add ~7.8 dB of power when combined [10*log10(6)].
+   
+2. Per-Carrier Target Output:
+   To hit a combined +18 dBm total composite output at the RU:
+   Per-Carrier Output = 18 dBm - 7.8 dB = +10.2 dBm
+
+3. Coverage Impact:
+   Pushing each individual carrier out at +10.2 dBm (compared to the 
+   conservative +12.2 dBm max capacity or the +7.2 dBm profile) maximizes 
+   indoor penetration through dense walls, drywall, and glass.
+
+========================================================================
+COMMISSIONING CONFIGURATION TARGETS (2 dB HEADROOM DESIGN)
+========================================================================
+
+POI ATTENUATION SETTING (At Cell Full Load):
+- Target Individual Carrier Power:  -2.8 dBm
+- Target Combined Composite Power:  +5.0 dBm
+
+ZINWAVE ELEMENT MANAGER CONFIGURATION:
+- Calculated DL Input Level:        0  
+- System Active Downlink Gain:      13 dB (Fixed/Locked by Software)
+                                    [+5 dBm input + 13 dB gain = +18 dBm]
+
+========================================================================
+SYSTEM BEHAVIOR MATRIX
+========================================================================
+
+STATE A: CELL AT FULL TRAFFIC LOAD (PEAK PROFILE)
+--------------------------------------------------
+- Per-Carrier Input at Hub:       -2.8 dBm
+- Total Composite Input at Hub:   +5.0 dBm   
+- DAS Internal Gain:              13.0 dB
+- Per-Carrier Output at RU:       +10.2 dBm
+- Total Composite Output at RU:   +18.0 dBm  <-- (Maximum Achievable Peak)
+- Safety Margin to Hardware Max:  2.0 dB     <-- (CRITICAL UPPER LIMIT)
+
+STATE B: CELL AT IDLE / NO TRAFFIC (VALLEY PROFILE)
+--------------------------------------------------
+- Per-Carrier Input at Hub:       -14.8 dBm
+- Total Composite Input at Hub:   -7.0 dBm   
+- DAS Internal Gain:              13.0 dB    <-- (Remains Fixed)
+- Per-Carrier Output at RU:       -1.8 dBm
+- Total Composite Output at RU:   +6.0 dBm
+- Low-End Hardware Stability:     -7.0 dBm composite remains perfectly 
+                                  safe above the physical -5.0 dBm 
+                                  Service Module linear limit.
+
+========================================================================
+CRITICAL FIELD DEPLOYMENT WARNINGS FOR 2 dB HEADROOM
+========================================================================
+* Software Overload Risk: Because you only have a 2 dB margin before hard 
+  clipping occurs, your POI balancing must be precise. If even one carrier 
+  spikes higher than its targeted -2.8 dBm share, the RU will trigger an 
+  Output Overload Alarm and degrade performance for all 6 carriers.
+* Thermal Load: The standard Remote Units will run significantly hotter 
+  under this profile during peak hours. Ensure they are mounted in plenum 
+  spaces with adequate ambient passive ventilation.
+* PIM and VSWR: At +18 dBm composite output, minor cable or connector 
+  defects (coax kinked, loose N-connectors) will cause severe Passive 
+  Intermodulation (PIM) and high VSWR reflections. All jumpers must be 
+  solid-shield/low-PIM and torqued to specification.
+========================================================================
+
+
+
+
+
+
+
+
+
+
+If we remove the safety buffer entirely and design for **$0\text{ dB}$ RU headroom**, we are configuring the Zinwave 5000 to run at its absolute maximum, theoretical hardware boundary.
+
+Under this aggressive configuration, your 6 combined carriers are allowed to peak at exactly **$+20\text{ dBm}$ total composite output** ($20\text{ dBm max} - 0\text{ dB headroom} = 20\text{ dBm}$).
+
+This pushes your per-carrier output power up to **$+12.2\text{ dBm}$**. Because your live carrier share ($+12.2\text{ dBm}$) is now exactly $7.8\text{ dB}$ lower than your CW test tone ($+20\text{ dBm}$), your walk test plotting offset drops from a $10\text{ dB}$ deduction down to an exact **$7.8\text{ dB}$ deduction (round to $8\text{ dB}$)**.
+
+Here is the updated configuration and walk test summary text file reflecting a $0\text{ dB}$ headroom deployment:
+
+```text
+========================================================================
+ZINWAVE 5000 DAS COMMISSIONING & WALK TEST SUMMARY (0 dB HEADROOM)
+========================================================================
+
+SYSTEM INFRASTRUCTURE:
+- DAS Platform:            Zinwave 5000 (UNItivity)
+- Signal Source Type:      LTE Macro BTS / Small Cells (6 Carriers)
+- Interface Type:          Point of Interface (POI) with Per-Carrier Pads
+- Combining Topology:      Pre-combined into ONE physical Service Module Port
+- Target RU Max Output:    +20 dBm Total Composite Power (0 dB Hard Headroom)
+
+========================================================================
+PRODUCTION SYSTEM SETTINGS (6 CARRIERS LIVE)
+========================================================================
+- Multi-Carrier Division:  6 carriers add ~7.8 dB of power when combined.
+- Per-Carrier Max Output:  +12.2 dBm per carrier at the RU antenna
+                           [+20 dBm composite - 7.8 dB multi-carrier factor]
+                           *All 6 carriers transmit simultaneously.*
+
+POI ATTENUATION SETTING (At Cell Full Load):
+- Target Individual Carrier Power:  -2.8 dBm
+- Target Combined Composite Power:  +5.0 dBm
+
+ZINWAVE ELEMENT MANAGER CONFIGURATION:
+- Calculated DL Input Level:        0  
+- System Active Downlink Gain:      15 dB (Fixed/Locked by Software)
+                                    [+5 dBm input + 15 dB gain = +20 dBm]
+
+========================================================================
+CW WALK TEST CONFIGURATION & PLOTTING MATH
+========================================================================
+To baseline coverage boundaries, a single Continuous Wave (CW) tone is 
+injected to drive the Remote Unit (RU) to its hardware limit.
+
+TEST BENCHMARK STATE:
+- CW Injector Setup:       Adjusted so the RU outputs exactly +20.0 dBm 
+                           (Single tone utilizing 100% amplifier capacity)
+
+THE RSSI PLOTTING PROBLEM:
+Your walk test receiver measures a single fake carrier hogging the full 
++20.0 dBm amplifier. When the system goes live, that specific carrier 
+will only be allowed to output +12.2 dBm because it must share the 
+amplifier with 5 other carriers. 
+
+Because the test tone is artificially inflated by 7.8 dB compared to its
+live multi-carrier production share, your raw data must be offset.
+
+WALK TEST SOFTWARE FILTER SETTING:
+- Required Plotting Offset:  -7.8 dB (Round to -8.0 dB)
+- Target Metric to Plot:     RSSI (Total Integrated Channel Power)
+
+========================================================================
+WALK TEST DATA TRANSLATION EXAMPLES
+========================================================================
+
+Raw Scanner CW Reading     Software Offset     Plotted 1 CC RSSI Map
+----------------------     ---------------     ---------------------
+-55.0 dBm                  -8.0 dB             -63.0 dBm (Excellent)
+-65.0 dBm                  -8.0 dB             -73.0 dBm (Good)
+-75.0 dBm                  -8.0 dB             -83.0 dBm (Fair)
+-85.0 dBm                  -8.0 dB             -93.0 dBm (Cell Edge)
+
+Applying this -8 dB deduction ensures your final RSSI coverage maps 
+accurately predict true performance when all 6 live carriers are 
+simultaneously broadcasting at the physical ceiling of the hardware.
+
+========================================================================
+CRITICAL OPERATIONAL RISK WARNINGS FOR 0 dB HEADROOM
+========================================================================
+* HARD CLIPPING RISK: Running with 0 dB of headroom means the hardware 
+  has zero safety margin. If the carrier increases power slightly, or if 
+  environmental factors cause a power spike, the RU will instantly hard-
+  clip the signal, destroying SINR/data throughput for all 6 carriers.
+* INTERMODULATION & PIM: High-order intermodulation products will increase 
+  significantly at +20 dBm composite output. Rigorous low-PIM cable 
+  installation and strict torque specifications are mandatory.
+========================================================================
+
+```
+
+
+
+
+
+
+To normalize your $0\text{ dB}$ headroom walk test results down to an **LTE RSRP** (Reference Signal Received Power) coverage map for a **$20\text{ MHz}$ channel bandwidth**, we have to add one final layer of logarithmic math to the text file.
+
+### The RSRP Normalization Math
+
+As established, your CW tone concentrates 100% of its energy ($+20\text{ dBm}$) into a single frequency.
+
+1. **The Multi-Carrier Share:** With $0\text{ dB}$ headroom, your single live carrier gets a maximum composite allocation of **$+12.2\text{ dBm}$** ($+20\text{ dBm} - 7.8\text{ dB}$ allocation for 6 carriers).
+2. **The $20\text{ MHz}$ Bandwidth Subcarrier Splitting:** A standard $20\text{ MHz}$ LTE channel contains exactly **1,200 individual subcarriers** (Resource Blocks $\times$ 12 subcarriers per RB). RSRP measures the power of just *one* of these subcarriers.
+
+To find out how much power lands on that single subcarrier, we calculate the bandwidth division factor:
+
+
+$$\text{Bandwidth Factor} = 10 \log_{10}(1200) = \mathbf{30.8\text{ dB}}$$
+
+### The Total RSRP Deduction
+
+To find your total walk test plotting offset from your raw $+20\text{ dBm}$ CW tone down to a $20\text{ MHz}$ 1-CC RSRP value, you combine both factors:
+
+$$\text{Total RSRP Offset} = \text{Multi-Carrier Share (-7.8 dB)} + \text{Bandwidth Splitting (-30.8 dB)} = \mathbf{-38.6\text{ dB}}$$
+
+For ease of calculation in your walk test software, engineers round this to a **$-39\text{ dB}$ offset**.
+
+---
+
+Here is your completed, end-to-end master commissioning and walk test text file:
+
+```text
+========================================================================
+ZINWAVE 5000 MASTER SUMMARY: 0 dB HEADROOM WITH 20MHz RSRP NORMALIZATION
+========================================================================
+
+SYSTEM INFRASTRUCTURE:
+- DAS Platform:            Zinwave 5000 (UNItivity)
+- Signal Source Type:      LTE Macro BTS / Small Cells (6 Carriers)
+- Interface Type:          Point of Interface (POI) with Per-Carrier Pads
+- Combining Topology:      Pre-combined into ONE physical Service Module Port
+- Target RU Max Output:    +20 dBm Total Composite Power (0 dB Hard Headroom)
+- Target Walk Test Metric: RSRP (Normalized to 20 MHz Component Carrier)
+
+========================================================================
+PRODUCTION SYSTEM SETTINGS (6 CARRIERS LIVE)
+========================================================================
+- Multi-Carrier Division:  6 carriers add ~7.8 dB of power when combined.
+- Per-Carrier Max Output:  +12.2 dBm per carrier at the RU antenna
+                           [+20 dBm composite - 7.8 dB multi-carrier factor]
+                           *All 6 carriers transmit simultaneously.*
+
+POI ATTENUATION SETTING (At Cell Full Load):
+- Target Individual Carrier Power:  -2.8 dBm
+- Target Combined Composite Power:  +5.0 dBm
+
+ZINWAVE ELEMENT MANAGER CONFIGURATION:
+- Calculated DL Input Level:        0  
+- System Active Downlink Gain:      15 dB (Fixed/Locked by Software)
+                                    [+5 dBm input + 15 dB gain = +20 dBm]
+
+========================================================================
+CW WALK TEST CONFIGURATION & RSRP PLOTTING MATH
+========================================================================
+To baseline coverage boundaries, a single Continuous Wave (CW) tone is 
+injected to drive the Remote Unit (RU) to its hardware limit.
+
+TEST BENCHMARK STATE:
+- CW Injector Setup:       Adjusted so the RU outputs exactly +20.0 dBm 
+                           (Single tone utilizing 100% amplifier capacity)
+
+THE RSRP NORMALIZATION PROBLEM:
+1. Your CW tone puts 100% of its power (+20 dBm) into one frequency.
+2. When live, 6 carriers share this, dropping your carrier to +12.2 dBm.
+3. A 20 MHz LTE channel spreads that +12.2 dBm across 1,200 subcarriers.
+4. RSRP measures only ONE subcarrier [10*log10(1200) = 30.8 dB drop].
+
+TOTAL LOGARITHMIC DEDUCTION:
+- Multi-Carrier Loss Factor:   -7.8 dB
+- 20 MHz Subcarrier Split:    -30.8 dB
+--------------------------------------------------
+= Total Software Plot Offset: -38.6 dB (Round to -39.0 dB)
+
+WALK TEST SOFTWARE FILTER SETTING:
+- Required Plotting Offset:  -39.0 dB
+- Target Metric to Plot:     RSRP (Reference Signal Received Power)
+
+========================================================================
+RSRP WALK TEST DATA TRANSLATION EXAMPLES (20 MHz BANDWIDTH)
+========================================================================
+
+Raw Scanner CW Reading     Software Offset     Plotted 1 CC RSRP Map
+----------------------     ---------------     ---------------------
+-45.0 dBm                  -39.0 dB            -84.0 dBm (Excellent RSRP)
+-55.0 dBm                  -39.0 dB            -94.0 dBm (Good/Standard)
+-65.0 dBm                  -39.0 dB            -104.0 dBm (Fair/Indoor)
+-75.0 dBm                  -39.0 dB            -114.0 dBm (Cell Edge/Poor)
+
+Applying this -39 dB deduction ensures your final plotted maps perfectly 
+predict true RSRP coverage boundaries when the building goes live with 
+all 6 carriers running at maximum capacity.
+========================================================================
+
+```
+
+
+
+
+
+========================================================================
+1. PHYSICAL POI PORT CONFIGURATION (PER CHANNEL)
+========================================================================
+To bring the +33.0 dBm source power down to its multi-carrier shared share:
+
+- Incoming Power Per Channel:  +33.0 dBm
+- Target Attenuation Setting:   36.0 dB  (Apply to EACH of the 6 paths)
+- Resulting Power Per Channel:   -3.0 dBm 
+
+- Logarithmic 6-Ch Combination:  6 channels add ~7.8 dB of power
+- TOTAL COMPOSITE TO HUB:       +4.8 dBm (Targets the optimal +5.0 dBm cap)
+
+
+
+========================================================================
+LIVE CARRIER IDLE POWER VERIFICATION REFERENCE
+========================================================================
+
+ANALYZER SETUP PARAMETERS:
+- Measurement Mode:        Channel Power (Integrated)
+- Detector Type:           RMS / Average
+- Integration Bandwidth:   Match Carrier Bandwidth (e.g., 20 MHz)
+
+EXPECTED PER-CARRIER VALUES (Measured at POI Channel Outputs):
+- Target Full Load Power:  -3.0 dBm
+- LTE Power Drop (Idle):   -12.0 dB
+------------------------------------------------------------------------
+= TARGET IDLE CHANNEL POWER: -15.0 dBm  (Per Individual Carrier)
+
+EXPECTED COMBINED COMPOSITE VALUE (Measured at Final Zinwave Input):
+- Per-Carrier Idle Power:  -15.0 dBm
+- 6-Carrier Combine Factor: +7.8 dB  [10*log10(6)]
+------------------------------------------------------------------------
+= TARGET COMPOSITE IDLE POWER: -7.2 dBm  (Total Combined Input)
+
+VERIFICATION CHECKLIST:
+[ ] Every individual active channel power reads ~ -15.0 dBm.
+[ ] The combined cable plugging into the Zinwave Hub reads ~ -7.2 dBm.
+[ ] Signal sits safely above the Zinwave hardware noise floor floor.
+========================================================================
+
+
+
+
+
+
+check optical before doing RU power trim
+ru power trim /cal acorss system with CW
+
+then do isolation tests after doing UL spec scan wit no DL sigs
+
+========================================================================
+LONG-TERM POWER MONITORING & OPTIMIZATION PROTOCOL
+========================================================================
+
+OBJECTIVE:
+Monitor live cell load and power levels over time to keep signals clean 
+and prevent amplifier clipping, while protecting the building's edge 
+coverage footprint.
+
+========================================================================
+1. DATA LOGGING AUDIT CHARACTERISTICS
+========================================================================
+- Monitoring Window:    First 14 to 30 days post-occupancy (Normal load)
+- Primary Metric:       Peak Saturated Duration / DL Input Overload Alarms
+- Safe Behavior:        Transient power spikes (+19.8 dBm) lasting 2-3 
+                        minutes. (System is handling burst traffic safely).
+- Dangerous Behavior:   Sustained flatlining at max power for >10 minutes.
+                        (Amplifier is clipping; SINR and speeds drop).
+
+========================================================================
+2. CORRECTIVE ACTION MATRIX (IF BACK-OFF IS REQUIRED)
+========================================================================
+
+OPTION A: THE PREFERRED METHOD (INCREASE POI ATTENUATION)
+- Action:               Increase individual POI channel pads by 1.0 to 1.5 dB 
+                        (e.g., change from 36.0 dB to 37.0 or 37.5 dB).
+- Why:                  Lowers the full-load peak hitting the Zinwave Hub 
+                        while leaving the master DAS gain intact.
+- Coverage Impact:      NONE. The physical coverage footprint at the edge of 
+                        the antennas remains completely intact.
+
+OPTION B: THE BRUTE FORCE METHOD (LOWER ZINWAVE SYSTEM GAIN)
+- Action:               Adjust the "Calculated DL Input Level" in software to 
+                        force the system to drop its active gain (e.g., 15 to 13 dB).
+- Why:                  Reduces total output power globally across all states.
+- Coverage Impact:      NEGATIVE. This shrinks the coverage footprint. Phones 
+                        at cell edges (stairwells/restrooms) may drop off.
+
+========================================================================
+3. FIELD TESTING CHECKLIST
+========================================================================
+[ ] Log Zinwave Element Manager alarms daily during corporate peak hours.
+[ ] Check for "DL Input Overload" or "High VSWR" flags during lunch hours.
+[ ] If backing off power, prioritize POI hardware attenuation adjustments 
+    first to maintain ultimate indoor coverage boundaries.
+========================================================================
+
+
+
+REPEATERS
+
+
+========================================================================
+REPEATER-FED DAS WITH INTERMEDIATE CABLE/SPLITTER LOSS (-8dB)
+========================================================================
+
+PHYSICAL ARCHITECTURE:
+- Repeater Output Max Ceiling:  +15.0 dBm (Full Load Composite)
+- Coaxial Cable / Splitter Loss: -8.0 dB
+- Zinwave Service Module Input:  +7.0 dBm  (Calculated Max Peak)
+------------------------------------------------------------------------
+= TARGET RU MAX OUTPUT CEILING: +20.0 dBm (0 dB Hard Headroom)
+
+ZINWAVE ELEMENT MANAGER SOFTWARE CONFIGURATION:
+- Calculated DL Input Level:    7         (Expects +7 dBm Max Peak)
+- Resulting System Active Gain:  13.0 dB   (Fixed & Locked by Hub)
+
+========================================================================
+PRODUCTION SPECTRUM ANALYZER VERIFICATION MATRIX
+========================================================================
+
+STATE                     REPEATER OUT    HUB INPUT DL    RU RF OUTPUT
+-----                     ------------    ------------    ------------
+100% Full Saturated Load   +15.0 dBm       +7.0 dBm        +20.0 dBm
+0% Quiet Idle (Nighttime)  +3.0 dBm        -5.0 dBm        +8.0 dBm
+
+EXPECTED NIGHTTIME IDLE POWER SPECIFICATIONS:
+- Repeater Idle Output:    +3.0 dBm  (Reflects the 12 dB macro drop)
+- Zinwave Hub Input Idle:  -5.0 dBm  (Repeater Idle - 8 dB Passive Loss)
+- Remote Unit Output Idle: +8.0 dBm  (-5.0 dBm Input + 13 dB Locked Gain)
+
+COMMISSIONING CHECKLIST (USING CW GENERATOR):
+[ ] Disconnect repeater; inject a clean CW tone at the splitter/cable output 
+    heading into the Hub.
+[ ] Adjust CW generator amplitude to deliver exactly +7.0 dBm into the Hub.
+[ ] In Zinwave GUI, verify "Calculated DL Input Level" is set to 7.
+[ ] Measure RU RF outputs; verify they read exactly +20.0 dBm.
+[ ] Reconnect live repeater infrastructure.
+========================================================================
+
+
+
+repeater set calc to +14 AGC 1  = 15dbm
+idle will be 12db lower then this
+UPLINK
+
+========================================================================
+PRIMARY HUB (PH) PORTAL UPLINK OFFSET CONFIGURATION
+========================================================================
+
+DESIGN OBJECTIVE:
+Compensate for the -8.0 dB passive cable/splitter loss by targeting a 
+net Hub output of +8.0 dB (or as close to 0 dB net system gain as possible).
+
+PORTAL DROP-DOWN ALIGNMENT:
+- Target Net Hub Gain:    +8.0 dB
+- PH Portal Logic:        Relative offset centered around a 25 dB baseline
+
+IDEAL SETTING:
+- Dropdown Offset:        -17 dB  (Resulting Gain: +8.0 dB / Net System: 0 dB)
+
+IF FIRMWARE IS CAPPED AT -15 dB MAX OFFSET:
+- Dropdown Offset:        -15 dB
+- Resulting Hub Gain:     +10.0 dB
+- Net System UL Gain:     +2.0 dB  (Safe, acceptable field tolerance)
+
+========================================================================
+FIELD SETTING PROCEDURE
+========================================================================
+[ ] Open the Zinwave PH Portal Uplink configuration page.
+[ ] Locate the Gain/Loss relative balance dropdown menu.
+[ ] Select -17 dB (or -15 dB if -17 dB is out of range).
+[ ] Save settings and confirm no high-ambient uplink RSSI alarms are 
+    triggered on the donor repeater.
+========================================================================
+
+To accurately calculate the mathematical variables for your data boxes, we break down your 6 equal-level LTE carriers using logarithmic math.
+
+### The Math Behind Your Data Parameters
+
+* **Per-Carrier Max Channel Power:** Found by dividing the total max composite power by 6 carriers: $\text{Composite} - 10\log_{10}(6) = \text{Composite} - 7.8\text{ dB}$.
+* **Per-Carrier Idle Channel Power:** Derived from your calculated 12 dB overall system drop from max load to idle.
+* **RSRP Normalized to 20 MHz:** Reference Signal Received Power (RSRP) isolates a single 15 kHz LTE Resource Element (RE). For a standard 20 MHz carrier containing 1,200 subcarriers, the baseline math is: $\text{Channel Power} - 10\log_{10}(1200) = \text{Channel Power} - 30.8\text{ dB}$.
+
+---
+
+## 1. Physical System Blueprint (Visual Reference)
+
+The visual overview below maps the core system blocks across your building infrastructure before diving into the absolute node-by-node power matrices.
+
+---
+
+## 2. Text-Based System Block Diagram
+
+This raw ASCII diagram can be directly copied into your field testing or site-handover `.txt` master file.
+
+```text
+==================================================================================================
+              ZINWAVE UNItivity 5000 POWER MATRIX & NODE-BY-NODE LINK BUDGET
+==================================================================================================
+
+  [DONOR RF ANTENNA]
+          │
+          ▼
+   [CONNECTION 01] ──► 1/2" Coaxial Donor Feed Run
+          │
+          ▼
+  [OFF-AIR REPEATER] 
+          │
+          ▼
+   [CONNECTION 02] ──► Repeater Output / POI Termination Interface
+          │
+          ▼
+  [PASSIVE COAX RAT-RACE]
+          │
+          ▼
+   [CONNECTION 03] ──► DAS Hub Downlink Input Interface (After -8dB passive loss)
+          │
+          ▼
+  [ZINWAVE PRIMARY HUB]
+          │
+          ▼
+   [CONNECTION 04] ──► 1310nm Analog Single-Mode Fiber Optic Link
+          │
+          ▼
+  [ZINWAVE REMOTE UNIT]
+          │
+          ▼
+   [CONNECTION 05] ──► Antenna RF Port Output (Target Design Matrix)
+          │
+          ▼
+  [OMNI CEILING ANTENNA]
+
+==================================================================================================
+                                    DATA BOX PARAMETER LISTS
+==================================================================================================
+
+--------------------------------------------------------------------------------------------------
+[INFO BOX ID: 01] - DONOR ANTENNA COAXIAL FEED RUN
+--------------------------------------------------------------------------------------------------
+1) Connection Point ID:    CP-01 (Donor Coaxial Entry)
+2) RF Bands Supported:     All Configured Bands (Multi-band transparent)
+3) Signal Direction:       Duplex (DL and UL)
+4) DL Per-Carrier Max:     Variable based on outdoor macro tower loading
+5) DL Per-Carrier Idle:    Variable based on outdoor macro environment noise floor
+6) DL Normalized RSRP:     Variable based on sector configuration
+7) DL Max Composite:       Variable (Monitored directly at surge protector/bulkhead)
+8) DL Idle Composite:      Variable (Fluctuates based on macro power breathing)
+--------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------
+[INFO BOX ID: 02] - REPEATER DIRECT OUTPUT RF INTERFACE
+--------------------------------------------------------------------------------------------------
+1) Connection Point ID:    CP-02 (Repeater RF Launch Port)
+2) RF Bands Supported:     All Configured Bands
+3) Signal Direction:       Duplex (DL and UL)
+4) DL Per-Carrier Max:     +7.2 dBm per channel (At full sector utilization)
+5) DL Per-Carrier Idle:    -4.8 dBm per channel (Control signaling frames only)
+6) DL Normalized RSRP:     -23.6 dBm (Normalized to 20MHz bandwidth channel)
+7) DL Max Composite:       +15.0 dBm (100% Saturated sector target)
+8) DL Idle Composite:      +3.0 dBm  (Nighttime system baseline)
+--------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------
+[INFO BOX ID: 03] - PRIMARY HUB SERVICE MODULE INPUT PORT
+--------------------------------------------------------------------------------------------------
+1) Connection Point ID:    CP-03 (Zinwave DL Input Port)
+2) RF Bands Supported:     All Configured Bands
+3) Signal Direction:       Downlink (DL Input Only)
+4) DL Per-Carrier Max:     -0.8 dBm per channel (Cushioned by passive loss)
+5) DL Per-Carrier Idle:    -12.8 dBm per channel
+6) DL Normalized RSRP:     -31.6 dBm (Normalized to 20MHz bandwidth channel)
+7) DL Max Composite:       +7.0 dBm  (Matches "Calculated DL Input = 7" GUI Setting)
+8) DL Idle Composite:      -5.0 dBm  (Expected value during low traffic window)
+--------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------
+[INFO BOX ID: 04] - ANALOG OPTICAL FIBER BACKBONE DISTRO
+--------------------------------------------------------------------------------------------------
+1) Connection Point ID:    CP-04 (Internal Fiber Optic Grid)
+2) RF Bands Supported:     All Configured Bands
+3) Signal Direction:       Duplex (Transmitted over 1310nm Single-Mode Fiber)
+4) DL Per-Carrier Max:     N/A (Modulated optical laser intensity index)
+5) DL Per-Carrier Idle:    N/A (Modulated optical laser intensity index)
+6) DL Normalized RSRP:     N/A (Optical domain)
+7) DL Max Composite:       Optical Power Level: ~ -3.0 dBm to 0.0 dBm optical (dBo)
+8) DL Idle Composite:      Optical Bias Current: Maintained steady by laser diode driver
+--------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------
+[INFO BOX ID: 05] - REMOTE UNIT (RU) RF ANTENNA PORT OUTPUT
+--------------------------------------------------------------------------------------------------
+1) Connection Point ID:    CP-05 (Ceiling Tx/Rx Port)
+2) RF Bands Supported:     All Configured Bands
+3) Signal Direction:       Duplex (RF Broadcast Environment)
+4) DL Per-Carrier Max:     +12.2 dBm per channel (Clean allocation, zero clipping)
+5) DL Per-Carrier Idle:    +0.2 dBm per channel
+6) DL Normalized RSRP:     -18.6 dBm (Clean reference signal coverage target)
+7) DL Max Composite:       +20.0 dBm (Absolute target full load capacity)
+8) DL Idle Composite:      +8.0 dBm  (Expected nighttime measurement level)
+==================================================================================================
+
+```
+
+
+repeater -fed das power budget calculaor
+
+how many repeaters
+how many mno
+how many channels per repeater
+haw many mancy sam band channels
+dl calc
+ul calculaor
+compost powert calc
+agc set
+calaculated set

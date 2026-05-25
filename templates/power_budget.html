@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zinwave 5000 repeater-fed DAS — downlink power budget</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; line-height: 1.45; }
+    h1 { font-size: 1.3rem; margin-bottom: 0.35rem; }
+    h2 { font-size: 1.05rem; margin: 1rem 0 0.45rem 0; }
+    label { display: block; margin-top: 0.45rem; font-weight: 500; font-size: 0.88rem; }
+    .nav { margin-bottom: 0.75rem; font-size: 0.9rem; }
+    .nav a { color: #06c; }
+    section { margin-bottom: 1rem; padding: 0.85rem; background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 6px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem 0.9rem; }
+    @media (max-width: 720px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    input[type="number"], select { padding: 0.25rem 0.4rem; font-size: 0.88rem; }
+    input.compact { width: 4.5rem; }
+    input.wide { width: 100%; min-width: 7rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.4rem; }
+    th, td { border: 1px solid #ccc; padding: 0.3rem 0.4rem; text-align: left; vertical-align: middle; }
+    th { background: #eee; font-weight: 600; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.num.readonly { background: #f3f3f3; color: #333; vertical-align: middle; }
+    .pass { color: #060; font-weight: 600; }
+    .fail { color: #c00; font-weight: 600; }
+    .warn { color: #a60; font-weight: 600; }
+    #result { margin-top: 1rem; padding: 1rem; background: #f0f4f0; border: 2px solid #6a6; border-radius: 6px; }
+    #result.fail-state { background: #fdf0f0; border-color: #c66; }
+    .em-box { background: #e8f0ff; border: 1px solid #8ab; padding: 0.75rem; border-radius: 4px; margin: 0.75rem 0; }
+    .em-box strong { font-size: 1.05rem; }
+    .matrix { font-size: 0.88rem; margin: 0.5rem 0; }
+    .matrix th { background: #dde; }
+    .ru-carrier-list { margin: 0.25rem 0 0 0; padding: 0; list-style: none; font-size: 0.78rem; font-weight: 400; color: #444; }
+    .ru-carrier-list li { margin: 0.1rem 0; }
+    .ru-carrier-list .lbl { color: #666; }
+    td.ru-cell { text-align: right; vertical-align: top; }
+    td.ru-cell .ru-carrier-list { text-align: left; }
+    #ru-per-carrier { margin-top: 0.35rem; font-size: 0.82rem; }
+    #ru-per-carrier caption { caption-side: top; text-align: left; font-weight: 600; font-size: 0.88rem; padding-bottom: 0.25rem; }
+    .port-card { margin-top: 0.75rem; padding: 0.65rem; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
+    .summary-row { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; margin: 0.3rem 0; font-size: 0.92rem; }
+    button { padding: 0.35rem 0.75rem; font-size: 0.88rem; cursor: pointer; margin-right: 0.4rem; margin-top: 0.3rem; }
+    .hint { font-size: 0.8rem; color: #555; margin: 0.2rem 0 0 0; }
+    tr.row-off td { opacity: 0.45; }
+    tr.row-off td.radio-on-cell { opacity: 1; }
+    tr.row-off td.c-rep-full-comp, tr.row-off td.c-rep-idle-comp { opacity: 1; }
+    .passive-row { display: grid; grid-template-columns: 1fr 5rem; gap: 0.5rem; align-items: center; margin-bottom: 0.35rem; }
+    .passive-row label { margin: 0; font-weight: 400; }
+    .port-sm-card { margin-top: 0.65rem; padding: 0.65rem; background: #fff; border: 1px solid #ccc; border-radius: 4px; }
+    .port-sm-card h3 { margin: 0 0 0.4rem 0; font-size: 0.95rem; }
+    .das-dl-card { border-color: #8ab; background: #f8fbff; }
+    .das-dl-card.atten-req { border-color: #c96; background: #fffaf5; }
+    .fig-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem 0.75rem; margin: 0.5rem 0; font-size: 0.82rem; }
+    .fig-grid .fig { padding: 0.35rem 0.45rem; background: #fff; border: 1px solid #ddd; border-radius: 3px; }
+    .fig-grid .fig label { margin: 0; font-size: 0.75rem; color: #555; font-weight: 500; }
+    .fig-grid .fig .val { font-size: 0.95rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .em-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem; }
+    @media (max-width: 720px) { .fig-grid, .em-controls { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <p class="nav"><a href="/">← Throughput calculator</a></p>
+  <h1>Zinwave 5000 (UNItivity) — repeater-fed downlink power budget</h1>
+  <p class="hint">UK Cel-Fi repeater defaults: GO G41/G43 per-channel max <strong>+12 dBm</strong> full (G41 unit cap +16 dBm UK); Quatra 4000e <strong>+16 dBm</strong> per channel. Idle ≈ full −12 dB LTE breathing. Edit per-carrier values to match your WAVE/commissioning readout.</p>
+  <p>
+    <button type="button" id="reset-defaults">Reset to defaults</button>
+  </p>
+
+  <section>
+    <h2>Topology &amp; commissioning</h2>
+    <div class="grid-2">
+      <div>
+        <label for="topology">Repeater / DAS topology</label>
+        <select id="topology">
+          <option value="g41_g43_combined">1× G41 + 1× G43 → single service module port (combined)</option>
+          <option value="four_g41_separate_ports">4× G41 → separate service module ports (1:1)</option>
+          <option value="cel_fi_quatra_combined" selected>1× Cel-Fi Quatra → single service module port (all MNO outputs combined)</option>
+          <option value="custom">Custom (assign repeaters to ports manually)</option>
+        </select>
+      </div>
+      <div>
+        <label for="ru-cap">RU DL ceiling (dBm)</label>
+        <input type="number" id="ru-cap" class="compact" value="20" min="0" max="20" step="0.5">
+      </div>
+      <div>
+        <label for="optical-loss">DL optical loss (dBo)</label>
+        <input type="number" id="optical-loss" class="compact" value="1" min="0" max="12" step="0.1">
+        <p class="hint">Hub→RU fiber loss. 1 dBo = 2 dB RF gain reduction (default 1 dBo → max gain 23 dB).</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Service module ports">
+    <h2>Service module ports &amp; repeater → hub passive losses</h2>
+    <p class="hint" id="service-ports-hint">Duplex coax from the repeater feeds an RF splitter (3 dB per branch). DL attenuator after the splitter; UL attenuator defaults to <strong>DL + 3 dB</strong> so PH Portal UL balance can fine-tune hub UL gain.</p>
+    <div id="service-ports-container"></div>
+  </section>
+
+  <section>
+    <h2>Donor carriers — repeater radios</h2>
+    <p class="hint" id="carriers-hint">Toggle each radio with the <strong>Radio ON</strong> column. Per-carrier power is that radio only. Repeater comp power is the single RF output for that unit (G43: up to 6 radios; Quatra: up to 8 radios).</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Radio ON</th>
+          <th>Label</th><th>Unit</th><th>MNO</th>
+          <th>Svc port</th>
+          <th>Full per-carrier power (dBm)</th><th>Idle per-carrier power (dBm)</th>
+          <th>Repeater full comp power (dBm)</th><th>Repeater idle comp power (dBm)</th>
+        </tr>
+      </thead>
+      <tbody id="carriers-body"></tbody>
+    </table>
+    <p class="hint" id="active-radio-count">Active radios: —</p>
+    <p class="hint" id="repeater-limits-hint" style="display:none"></p>
+  </section>
+
+  <section aria-label="DAS DL service port">
+    <h2>DAS DL service port</h2>
+    <p class="hint">Signal path: <strong>Repeater (duplex) → coax → RF splitter [−3 dB DL] → DL attenuator → hub → fiber → RU</strong>. Hub DL input window <strong>−5 to +15 dBm</strong>. DL optical loss (dBo) reduces max fiber gain by <strong>2 dB RF per 1 dBo</strong>. System Active DL Gain = min(effective max − Calc level, RU target sizing).</p>
+    <div id="das-dl-ports-container"></div>
+  </section>
+
+  <section aria-label="DAS UL service port">
+    <h2>DAS UL service port</h2>
+    <p class="hint">Signal path: <strong>RU → hub UL amp → UL attenuator → RF splitter [−3 dB UL] → coax (duplex) → repeater</strong>. Set <strong>UL attenuator</strong> in the passive loss table (defaults to DL + 3 dB). Trim net UL gain with PH Portal <strong>UL balance</strong> — less negative adds hub UL gain (default −15 dB).</p>
+    <div id="das-ul-ports-container"></div>
+  </section>
+
+  <div id="result" aria-live="polite">
+    <p><strong>Status:</strong> <span id="status-text">Calculating…</span></p>
+    <div class="em-box" id="em-box">
+      <p><strong>Element Manager settings</strong> <span class="hint" id="em-scope">—</span></p>
+      <p>Calculated DL Input Level: <strong id="calc-dl-input">—</strong> · DL attenuator: <strong id="dl-agc">—</strong> dB</p>
+      <p>System Active Downlink Gain: <strong id="sys-gain">—</strong> dB <span class="hint" id="sys-gain-hint">(effective max <strong id="eff-max-gain">23</strong> dB − Calc level, capped by RU target)</span></p>
+      <p class="hint" id="em-note">—</p>
+    </div>
+    <table class="matrix" id="verify-matrix">
+      <thead>
+        <tr id="matrix-head-row">
+          <th>State</th><th>Repeater</th><th>Hub</th><th>RU</th><th>RU ≤ cap</th><th>Hub window</th>
+        </tr>
+      </thead>
+      <tbody id="matrix-body"></tbody>
+    </table>
+    <table class="matrix" id="ru-per-carrier" style="display:none;">
+      <caption>RU per-carrier output</caption>
+      <thead>
+        <tr><th>Carrier</th><th>Full load (dBm)</th><th>Idle (dBm)</th></tr>
+      </thead>
+      <tbody id="ru-carrier-body"></tbody>
+    </table>
+    <div class="summary-row">
+      <span>Active radios (full / idle): <strong id="active-full-count">—</strong> / <strong id="active-idle-count">—</strong></span>
+      <span id="repeater-summary-row"></span>
+      <span>Multi-carrier factor (full): <strong id="mcf">—</strong> dB</span>
+    </div>
+    <div class="summary-row">
+      <span>CW walk-test offset: <strong id="cw-offset">—</strong> dB</span>
+      <span>RSRP 20 MHz offset: <strong id="rsrp-offset">—</strong> dB</span>
+    </div>
+    <div id="ports-results"></div>
+  </div>
+
+  <section style="background:transparent;border:none;padding:0;">
+    <h2>Method (zinwave.txt)</h2>
+    <p class="hint">Hub per-carrier = repeater − coax (duplex) − RF splitter DL branch − DL attenuator − patch. UL path shares coax and splitter (−3 dB UL branch) plus UL attenuator. System gain = target RU power − hub DL input (full load). With n&gt;1 carrier, hub/RU totals are <strong>DL input comp power</strong> / <strong>composite power</strong> (linear sum in mW).</p>
+  </section>
+
+  <section style="background:#f5f5f5;border:1px solid #ddd;padding:0.85rem;font-size:0.82rem;">
+    <h2 style="font-size:0.95rem;margin:0 0 0.5rem 0;">UK repeater power defaults &amp; sources</h2>
+    <p style="margin:0 0 0.5rem 0;">Default <strong>per-carrier</strong> full/idle levels in the donor table are taken from Nextivity (Cel-Fi) UK/EMEA datasheets and guides, for licence-exempt repeaters under Ofcom IR2102. They are starting values — always confirm against your WAVE portal or field measurement before commissioning.</p>
+    <table style="font-size:0.82rem;margin:0.5rem 0;">
+      <thead>
+        <tr><th>Repeater</th><th>Default (full / idle)</th><th>Manufacturer limit (UK / EMEA)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>CEL-FI GO G41</td><td>+12 / 0 dBm</td><td>+16 dBm max DL total (UK); 2 relay channels</td></tr>
+        <tr><td>CEL-FI GO G43</td><td>+12 / 0 dBm</td><td>+12 dBm max per channel per MNO port; +17 dBm per band per port</td></tr>
+        <tr><td>CEL-FI QUATRA 4000e</td><td>+16 / +4 dBm</td><td>+16 dBm DL per channel / per operator</td></tr>
+      </tbody>
+    </table>
+    <p style="margin:0.35rem 0 0 0;">Idle defaults assume ~12 dB LTE macro breathing (full load → idle), consistent with <code>zinwave.txt</code> commissioning notes. G43 and Quatra <strong>repeater comp power</strong> sums all active radios on one RF output (G43: up to 6; Quatra: up to 8).</p>
+    <p style="margin:0.5rem 0 0 0;"><strong>Sources:</strong></p>
+    <ul style="margin:0.25rem 0 0 1.1rem;padding:0;">
+      <li><a href="https://mobilesystems.nz/cdn/shop/files/GOG41_datasheet.pdf" rel="noopener noreferrer">CEL-FI GO G41 datasheet</a> — Output downlink power: 20 dBm max (16 dBm in UK)</li>
+      <li><a href="https://nextivityinc.com/wp-content/uploads/2023/10/CEL-FI-GO-G43-Datasheet-Americas.pdf" rel="noopener noreferrer">CEL-FI GO G43 datasheet</a> — 12 dBm max per channel per port; 17 dBm per band per port</li>
+      <li><a href="https://support.cel-fi.com/hc/en-us/articles/360039366174-QUATRA-4000-Installation-and-User-Guide" rel="noopener noreferrer">CEL-FI QUATRA 4000 / 4000e installation guide</a> — 16 dBm downlink per operator per band</li>
+      <li><a href="https://www.rwlas.com/wp-content/uploads/2023/06/QUATRA4000_datasheet.pdf" rel="noopener noreferrer">QUATRA 4000 datasheet (RWL)</a> — 16 dBm DL per channel (max)</li>
+      <li>Site DAS commissioning reference: <code>zinwave.txt</code> in this repo (Zinwave 5000 hub/RU windows, passive loss, and worked examples — may use lower repeater levels than hardware max)</li>
+    </ul>
+  </section>
+
+  <script>
+    const DEFAULT_PASSIVE_ITEMS = [
+      { name: 'Repeater output jumper', loss_db: 1.0 },
+      { name: '', loss_db: null },
+      { name: '', loss_db: null },
+      { name: 'Duplex RF splitter (DL & UL branch)', loss_db: 3.0 },
+      { name: 'DL attenuator', loss_db: null },
+      { name: 'UL attenuator', loss_db: null },
+    ];
+    const PASSIVE_ROW = { SHARED_END: 3, DL_ATTEN: 4, UL_ATTEN: 5 };
+
+    function passiveLossDisplay(v) {
+      return (v == null || v === '') ? '' : v;
+    }
+
+    function pathLossFromInputs(inputs) {
+      const v = (i) => {
+        if (!inputs[i] || inputs[i].value === '') return 0;
+        const n = parseFloat(inputs[i].value);
+        return Number.isNaN(n) ? 0 : n;
+      };
+      let shared = 0;
+      for (let i = 0; i <= PASSIVE_ROW.SHARED_END; i++) shared += v(i);
+      return {
+        shared,
+        dl: shared + v(PASSIVE_ROW.DL_ATTEN),
+        ul: shared + v(PASSIVE_ROW.UL_ATTEN),
+      };
+    }
+
+    function parseAttenInput(value) {
+      if (value === '' || value == null) return null;
+      const n = parseFloat(value);
+      return Number.isNaN(n) ? null : n;
+    }
+
+    function passiveLossInput(smCard, rowIndex) {
+      return smCard?.querySelectorAll('.passive-row')[rowIndex + 1]?.querySelector('.pl-loss') || null;
+    }
+
+    const PORTAL_UL_BALANCE = { min: -17, firmwareMin: -15, max: 0, baselineGain: 25, default: -15 };
+    const CALC_DL_INPUT = { default: 13 };
+
+    const MULTI_PORT_TOPOLOGIES = new Set([
+      'four_g41_separate_ports',
+    ]);
+
+    const REPEATER_LIMITS = {
+      G43: { min: 1, max: 6, hint: '2 radios × 3 MNO inputs' },
+      QUATRA: { min: 1, max: 8, hint: '2 radios × 4 MNO ports' },
+    };
+
+    const TOPOLOGY_HINTS = {
+      g41_g43_combined: {
+        servicePorts: 'Duplex feed → RF splitter (3 dB DL / 3 dB UL). G41 and G43 combined before the splitter.',
+        carriers: 'G41: 2 radios → one comp output per unit. G43: up to 6 radios (3 MNO inputs) → one combined comp output for the whole G43 (not per MNO).',
+      },
+      four_g41_separate_ports: {
+        servicePorts: 'Four ports — one dedicated duplex feed + splitter per G41 repeater.',
+        carriers: 'Four G41 units, 2 radios each. Repeater comp power once per unit (2 rows).',
+      },
+      cel_fi_quatra_combined: {
+        servicePorts: 'Single duplex feed → RF splitter → DL port. Quatra one RF output; all MNO carriers on one hub DL input.',
+        carriers: 'Cel-Fi Quatra: 4 MNO ports × 2 radios (8 total), one combined repeater output. Comp power spans all 8 rows.',
+      },
+      custom: {
+        servicePorts: 'Assign passive loss per port; map carriers in the table.',
+        carriers: 'Assign each carrier to a service port. G41 / G43 / Quatra: one comp output per repeater unit (all active radios summed).',
+      },
+    };
+
+    const UK_REPEATER_POWER = {
+      G41: { full: 12, idle: 0 },
+      G43: { full: 12, idle: 0 },
+      QUATRA: { full: 16, idle: 4 },
+    };
+
+    function buildQuatraCarriers() {
+      const p = UK_REPEATER_POWER.QUATRA;
+      const c = [];
+      ['MNO A', 'MNO B', 'MNO C', 'MNO D'].forEach((mno, i) => {
+        const letter = mno.slice(-1);
+        const sp = 'sp1';
+        const sfx = letter.toLowerCase();
+        c.push({
+          carrier_id: `quatra-${sfx}r1`, label: `Quatra MNO ${letter} — Radio 1`,
+          repeater: 'QUATRA', repeater_unit_id: 'quatra-1', service_port_id: sp, mno,
+          dl_power_full_dbm: p.full, dl_power_idle_dbm: p.idle,
+        });
+        c.push({
+          carrier_id: `quatra-${sfx}r2`, label: `Quatra MNO ${letter} — Radio 2`,
+          repeater: 'QUATRA', repeater_unit_id: 'quatra-1', service_port_id: sp, mno,
+          dl_power_full_dbm: p.full, dl_power_idle_dbm: p.idle,
+        });
+      });
+      return c;
+    }
+
+    const TOPOLOGY_PRESETS = {
+      g41_g43_combined: {
+        carriers: [
+          { carrier_id: 'g41-1r1', label: 'G41 Radio 1 — LTE B3', repeater: 'G41', repeater_unit_id: 'g41-1', service_port_id: 'sp1', mno: 'MNO A', dl_power_full_dbm: 12, dl_power_idle_dbm: 0 },
+          { carrier_id: 'g41-1r2', label: 'G41 Radio 2 — LTE B20', repeater: 'G41', repeater_unit_id: 'g41-1', service_port_id: 'sp1', mno: 'MNO A', dl_power_full_dbm: 12, dl_power_idle_dbm: 0 },
+          { carrier_id: 'g43-b1', label: 'G43 MNO B — R1 B3', repeater: 'G43', repeater_unit_id: 'g43-1', service_port_id: 'sp1', mno: 'MNO B', dl_power_full_dbm: 12, dl_power_idle_dbm: 0 },
+          { carrier_id: 'g43-b2', label: 'G43 MNO B — R2 B1', repeater: 'G43', repeater_unit_id: 'g43-1', service_port_id: 'sp1', mno: 'MNO B', dl_power_full_dbm: 12, dl_power_idle_dbm: 0 },
+          { carrier_id: 'g43-c1', label: 'G43 MNO C — R1 B3', repeater: 'G43', repeater_unit_id: 'g43-1', service_port_id: 'sp1', mno: 'MNO C', dl_power_full_dbm: 12, dl_power_idle_dbm: 0 },
+          { carrier_id: 'g43-c2', label: 'G43 MNO C — R2 B20', repeater: 'G43', repeater_unit_id: 'g43-1', service_port_id: 'sp1', mno: 'MNO C', dl_power_full_dbm: 12, dl_power_idle_dbm: 0 },
+          { carrier_id: 'g43-d1', label: 'G43 MNO D — R1 B3', repeater: 'G43', repeater_unit_id: 'g43-1', service_port_id: 'sp1', mno: 'MNO D', dl_power_full_dbm: 12, dl_power_idle_dbm: 0 },
+          { carrier_id: 'g43-d2', label: 'G43 MNO D — R2 B7', repeater: 'G43', repeater_unit_id: 'g43-1', service_port_id: 'sp1', mno: 'MNO D', dl_power_full_dbm: 12, dl_power_idle_dbm: 0 },
+        ],
+        ports: [{
+          port_id: 'sp1', name: 'Service module port 1 (G41 + G43 combined)',
+          fed_by_repeater_units: ['g41-1', 'g43-1'],
+          passive_loss_items: DEFAULT_PASSIVE_ITEMS,
+        }],
+      },
+      four_g41_separate_ports: {
+        carriers: (() => {
+          const c = [];
+          const mnos = ['MNO A', 'MNO B', 'MNO C', 'MNO D'];
+          for (let n = 1; n <= 4; n++) {
+            c.push({ carrier_id: `g41-${n}r1`, label: `G41-${n} Radio 1 — B3`, repeater: 'G41', repeater_unit_id: `g41-${n}`, service_port_id: `sp${n}`, mno: mnos[n-1], dl_power_full_dbm: 12, dl_power_idle_dbm: 0 });
+            c.push({ carrier_id: `g41-${n}r2`, label: `G41-${n} Radio 2 — B20`, repeater: 'G41', repeater_unit_id: `g41-${n}`, service_port_id: `sp${n}`, mno: mnos[n-1], dl_power_full_dbm: 12, dl_power_idle_dbm: 0 });
+          }
+          return c;
+        })(),
+        ports: [1,2,3,4].map(n => ({
+          port_id: `sp${n}`, name: `Service module port ${n} ← G41-${n}`,
+          fed_by_repeater_units: [`g41-${n}`],
+          passive_loss_items: DEFAULT_PASSIVE_ITEMS.map(x => ({...x})),
+        })),
+      },
+      cel_fi_quatra_combined: {
+        carriers: buildQuatraCarriers(),
+        ports: [{
+          port_id: 'sp1', name: 'Service module port 1 (Cel-Fi Quatra — all MNO combined)',
+          fed_by_repeater_units: ['quatra-1'],
+          passive_loss_items: DEFAULT_PASSIVE_ITEMS,
+        }],
+      },
+    };
+
+    let carrierPreset = TOPOLOGY_PRESETS.cel_fi_quatra_combined.carriers;
+    let portPreset = TOPOLOGY_PRESETS.cel_fi_quatra_combined.ports;
+
+    function round1(v) {
+      if (v == null || Number.isNaN(v)) return '—';
+      return (Math.round(v * 10) / 10).toFixed(1);
+    }
+
+    function sumDbm(powers) {
+      if (!powers.length) return null;
+      const mw = powers.reduce((s, db) => s + Math.pow(10, db / 10), 0);
+      if (mw <= 0) return null;
+      return 10 * Math.log10(mw);
+    }
+
+    /**
+     * Repeater comp-power group (one merged table cell / one RF output).
+     * G41: 2 radios → one output. G43: up to 6 radios → one output.
+     * Cel-Fi Quatra: one RF output — all MNO ports (up to 8 radios) summed together.
+     */
+    function compGroupKey(unitId, mno, model) {
+      if (model === 'G43' || model === 'G41' || model === 'QUATRA') return unitId;
+      return unitId + '|' + mno;
+    }
+
+    /** Per group: composite of all Radio ON carriers in that group (full / idle). */
+    function repeaterCompByGroup() {
+      const map = {};
+      document.querySelectorAll('#carriers-body tr').forEach(tr => {
+        if (!tr.querySelector('.radio-on').checked) return;
+        const key = tr.dataset.compGroup;
+        if (!key) return;
+        const full = parseFloat(tr.querySelector('.c-full').value);
+        const idle = parseFloat(tr.querySelector('.c-idle').value);
+        if (!map[key]) map[key] = { full: [], idle: [] };
+        if (!Number.isNaN(full)) map[key].full.push(full);
+        if (!Number.isNaN(idle)) map[key].idle.push(idle);
+      });
+      const out = {};
+      Object.keys(map).forEach(key => {
+        out[key] = { full: sumDbm(map[key].full), idle: sumDbm(map[key].idle) };
+      });
+      return out;
+    }
+
+    function updateRepeaterCompColumns() {
+      const comp = repeaterCompByGroup();
+      document.querySelectorAll('#carriers-body .c-rep-full-comp').forEach(fullEl => {
+        const tr = fullEl.closest('tr');
+        const key = tr && tr.dataset.compGroup;
+        const c = key ? comp[key] : null;
+        fullEl.textContent = c?.full != null ? round1(c.full) : '—';
+        const idleEl = fullEl.nextElementSibling;
+        if (idleEl && idleEl.classList.contains('c-rep-idle-comp')) {
+          idleEl.textContent = c?.idle != null ? round1(c.idle) : '—';
+        }
+      });
+    }
+
+    /** composite power when n>1 carrier; otherwise power */
+    function powerTerm(nCarriers) {
+      return (nCarriers > 1) ? 'composite power' : 'power';
+    }
+
+    /** Hub DL input label at service module port */
+    function hubPowerTerm(nCarriers) {
+      return (nCarriers > 1) ? 'DL input comp power' : 'DL input power';
+    }
+
+    function countActiveByRepeater(carriers, repeater) {
+      return (carriers || []).filter(c => c.repeater === repeater && c.active_full).length;
+    }
+
+    function updateMatrixHeaders(nFull, nIdle) {
+      const n = Math.max(nFull || 0, nIdle || 0, 1);
+      const repTerm = powerTerm(n);
+      const hubTerm = hubPowerTerm(n);
+      const row = document.getElementById('matrix-head-row');
+      if (!row) return;
+      row.innerHTML = `
+        <th>State</th>
+        <th>Repeater ${repTerm}</th>
+        <th>Hub ${hubTerm}</th>
+        <th>RU ${repTerm}</th>
+        <th>RU ≤ cap</th>
+        <th>Hub window</th>`;
+    }
+
+    function isCustomTopology() {
+      return document.getElementById('topology').value === 'custom';
+    }
+
+    function servicePortOptions(selected) {
+      const ports = portPreset.map(p => p.port_id);
+      return ports.map(id => `<option value="${id}" ${id===selected?'selected':''}>${id}</option>`).join('');
+    }
+
+    function buildDasDlPortCards() {
+      const container = document.getElementById('das-dl-ports-container');
+      container.innerHTML = '';
+      portPreset.forEach((p) => {
+        const card = document.createElement('div');
+        card.className = 'port-sm-card das-dl-card';
+        card.dataset.portId = p.port_id;
+        card.innerHTML = `
+          <h3>${p.name}</h3>
+          <div class="fig-grid">
+            <div class="fig"><label>Repeater full comp power</label><div class="val das-rep-full">—</div><span class="hint">dBm @ full load</span></div>
+            <div class="fig"><label>Coax + splitter DL loss</label><div class="val das-passive-before-atten">—</div><span class="hint">dB (incl. −3 dB splitter)</span></div>
+            <div class="fig"><label>Raw DL input @ full load</label><div class="val das-raw-full">—</div><span class="hint">dBm at splitter output</span></div>
+            <div class="fig"><label>DL attenuator</label><div class="val das-dl-atten-ro">—</div><span class="hint">dB (after splitter)</span></div>
+            <div class="fig"><label>Protected input @ full</label><div class="val das-prot-full">—</div><span class="hint">dBm at DL port</span></div>
+          </div>
+          <p class="hint das-path">—</p>
+          <p class="hint das-atten-note" style="display:none"></p>
+          <div class="em-controls">
+            <div>
+              <label>Calculated DL Input Level (EM)</label>
+              <input type="number" class="compact das-calc-dl" step="1" value="13">
+              <p class="hint">Default +13 dBm. System Active DL Gain = min(effective max − this value, gain for RU target).</p>
+            </div>
+          </div>
+          <p class="hint das-hub-status">—</p>`;
+        container.appendChild(card);
+      });
+    }
+
+    function updateDasDlPortCards(ports) {
+      const cards = document.querySelectorAll('#das-dl-ports-container .das-dl-card');
+      (ports || []).forEach((p, i) => {
+        const card = cards[i];
+        if (!card) return;
+        const das = p.das_dl_service_port || {};
+        const fmt = v => (v != null && v !== '') ? round1(v) : '—';
+        card.querySelector('.das-rep-full').textContent = fmt(das.repeater_composite_full_dbm);
+        const beforeAtten = (das.pre_splitter_coax_db != null && (das.duplex_splitter_db != null || das.duplex_splitter_dl_db != null))
+          ? round1(Number(das.pre_splitter_coax_db) + Number(das.duplex_splitter_db ?? das.duplex_splitter_dl_db))
+          : fmt(das.passive_loss_total_db);
+        card.querySelector('.das-passive-before-atten').textContent = beforeAtten;
+        card.querySelector('.das-raw-full').textContent = fmt(das.raw_dl_input_full_dbm);
+        card.querySelector('.das-dl-atten-ro').textContent = fmt(das.dl_attenuator_db ?? p.dl_agc_db);
+        card.querySelector('.das-prot-full').textContent = fmt(das.protected_dl_input_full_dbm);
+        if (das.signal_path) card.querySelector('.das-path').textContent = das.signal_path;
+        const calcInp = card.querySelector('.das-calc-dl');
+        if (document.activeElement !== calcInp && p.calculated_dl_input_level != null) {
+          calcInp.value = p.calculated_dl_input_level;
+        }
+        const attenNote = card.querySelector('.das-atten-note');
+        const remainingAtten = das.remaining_external_attenuation_db;
+        const installedAtten = das.installed_external_attenuation_db ?? p.dl_agc_db;
+        const targetAtten = das.required_external_attenuation_db ?? das.recommended_dl_agc_db;
+        if (remainingAtten != null && remainingAtten > 0) {
+          card.classList.add('atten-req');
+          attenNote.style.display = '';
+          const installedTxt = installedAtten != null && installedAtten > 0
+            ? ` (${round1(installedAtten)} dB installed)`
+            : '';
+          attenNote.innerHTML = `<span class="warn">Increase DL attenuation by ~${fmt(remainingAtten)} dB</span>${installedTxt} after the RF splitter (before the DL port). Target: ${fmt(targetAtten)} dB total. Match UL attenuator on the UL branch.`;
+        } else if (!das.within_hub_window && das.raw_dl_input_full_dbm != null) {
+          card.classList.add('atten-req');
+          attenNote.style.display = '';
+          attenNote.innerHTML = `<span class="fail">Protected input outside hub window — adjust DL attenuation (currently ${fmt(installedAtten)} dB).</span>`;
+        } else {
+          card.classList.remove('atten-req');
+          attenNote.style.display = 'none';
+        }
+        const statusEl = card.querySelector('.das-hub-status');
+        if (das.within_hub_window) {
+          statusEl.innerHTML = `<span class="pass">Protected full-load input within −5 to +15 dBm window.</span>`;
+        } else if (das.raw_dl_input_full_dbm != null) {
+          statusEl.innerHTML = `<span class="fail">Protected input outside hub window — increase DL attenuation in the passive loss table.</span>`;
+        } else {
+          statusEl.textContent = 'No active radios on this port.';
+        }
+      });
+    }
+
+    function buildDasUlPortCards() {
+      const container = document.getElementById('das-ul-ports-container');
+      container.innerHTML = '';
+      portPreset.forEach((p) => {
+        const card = document.createElement('div');
+        card.className = 'port-sm-card das-dl-card';
+        card.dataset.portId = p.port_id;
+        card.innerHTML = `
+          <h3>${p.name}</h3>
+          <div class="fig-grid">
+            <div class="fig"><label>Shared coax loss</label><div class="val ul-coax">—</div><span class="hint">dB (duplex, pre-splitter)</span></div>
+            <div class="fig"><label>RF splitter (same device)</label><div class="val ul-splitter">—</div><span class="hint">dB — matches DL branch setting</span></div>
+            <div class="fig"><label>UL attenuator</label><div class="val ul-atten-ro">—</div><span class="hint">dB (after hub UL amp)</span></div>
+            <div class="fig"><label>Total UL path loss</label><div class="val ul-total">—</div><span class="hint">dB hub → repeater</span></div>
+            <div class="fig"><label>Hub UL gain</label><div class="val ul-hub-gain">—</div><span class="hint">dB (from portal balance)</span></div>
+            <div class="fig"><label>Net UL system gain</label><div class="val ul-net-gain">—</div><span class="hint">dB RU → repeater (0 = unity)</span></div>
+          </div>
+          <p class="hint ul-path">—</p>
+          <p class="hint ul-balance-note">—</p>
+          <div class="em-controls">
+            <div>
+              <label>PH Portal UL balance (dB)</label>
+              <input type="number" class="compact das-ul-balance" min="-17" max="0" step="1" value="-15">
+              <p class="hint">Default −15 dB. Raise toward the recommended unity value to add hub UL gain.</p>
+            </div>
+          </div>`;
+        container.appendChild(card);
+      });
+    }
+
+    function updateDasUlPortCards(ports) {
+      const cards = document.querySelectorAll('#das-ul-ports-container .das-dl-card');
+      (ports || []).forEach((p, i) => {
+        const card = cards[i];
+        if (!card) return;
+        const ul = p.das_ul_service_port || {};
+        const fmt = v => (v != null && v !== '') ? round1(v) : '—';
+        card.querySelector('.ul-coax').textContent = fmt(ul.ul_coax_shared_db);
+        card.querySelector('.ul-splitter').textContent = fmt(ul.duplex_splitter_ul_db);
+        card.querySelector('.ul-atten-ro').textContent = fmt(ul.ul_attenuator_db ?? p.ul_attenuation_db);
+        card.querySelector('.ul-total').textContent = fmt(ul.total_ul_passive_db);
+        card.querySelector('.ul-hub-gain').textContent = fmt(ul.ul_hub_gain_db);
+        const netEl = card.querySelector('.ul-net-gain');
+        netEl.textContent = ul.net_ul_system_gain_db != null
+          ? ((ul.net_ul_system_gain_db > 0 ? '+' : '') + round1(ul.net_ul_system_gain_db))
+          : '—';
+        netEl.className = 'val ul-net-gain' + (ul.at_unity_gain ? ' pass' : '');
+        if (ul.signal_path) card.querySelector('.ul-path').textContent = ul.signal_path;
+        const noteEl = card.querySelector('.ul-balance-note');
+        if (ul.at_unity_gain) {
+          noteEl.innerHTML = '<span class="pass">Net UL gain at unity (0 dB) — RU UL level matches repeater input.</span>';
+        } else if (ul.recommended_portal_ul_balance_db != null) {
+          const rec = round1(ul.recommended_portal_ul_balance_db);
+          noteEl.innerHTML = `<span class="warn">For unity gain, set portal balance to <strong>${rec} dB</strong> `
+            + `(hub UL gain = path loss ${fmt(ul.total_ul_passive_db)} dB).</span>`;
+        } else {
+          noteEl.textContent = '';
+        }
+        if (ul.firmware_balance_below_min) {
+          noteEl.innerHTML += ' <span class="warn">Balance below −15 dB may be unavailable on some hub firmware.</span>';
+        }
+        const balInp = card.querySelector('.das-ul-balance');
+        if (document.activeElement !== balInp && (p.portal_ul_balance_db != null || ul.portal_ul_balance_db != null)) {
+          balInp.value = round1(p.portal_ul_balance_db ?? ul.portal_ul_balance_db);
+        }
+      });
+    }
+
+    function buildServicePortCards() {
+      const container = document.getElementById('service-ports-container');
+      container.innerHTML = '';
+      portPreset.forEach((p, pi) => {
+        const card = document.createElement('div');
+        card.className = 'port-sm-card';
+        card.dataset.portId = p.port_id;
+        const fed = (p.fed_by_repeater_units || []).join(', ');
+        let passiveHtml = `<div class="passive-row" style="font-weight:600;font-size:0.8rem;"><span>Element</span><span>Loss dB</span></div>`;
+        (p.passive_loss_items || DEFAULT_PASSIVE_ITEMS).forEach((item) => {
+          passiveHtml += `<div class="passive-row"><input type="text" class="wide pl-name" value="${item.name || ''}" placeholder=""><input type="number" class="compact pl-loss" value="${passiveLossDisplay(item.loss_db)}" min="0" step="0.1" placeholder=""></div>`;
+        });
+        card.innerHTML = `
+          <h3>${p.name}</h3>
+          <p class="hint">Fed by repeater unit(s): <strong>${fed || '(all on this port via carrier assignment)'}</strong></p>
+          ${passiveHtml}
+          <p class="passive-total">DL path loss: <strong class="port-dl-loss">—</strong> dB · UL path loss: <strong class="port-ul-loss">—</strong> dB</p>`;
+        container.appendChild(card);
+        updatePortPathLossTotals(card);
+      });
+      buildDasDlPortCards();
+      buildDasUlPortCards();
+    }
+
+    function updatePortPathLossTotals(card) {
+      const paths = pathLossFromInputs(card.querySelectorAll('.pl-loss'));
+      card.querySelector('.port-dl-loss').textContent = (Math.round(paths.dl * 10) / 10).toFixed(1);
+      card.querySelector('.port-ul-loss').textContent = (Math.round(paths.ul * 10) / 10).toFixed(1);
+    }
+
+    function syncPassiveRowsFromPorts(ports) {
+      const cards = document.querySelectorAll('#service-ports-container .port-sm-card');
+      (ports || []).forEach((p, i) => {
+        const card = cards[i];
+        if (!card || !p.passive_loss_items) return;
+        const rows = card.querySelectorAll('.passive-row');
+        p.passive_loss_items.forEach((item, j) => {
+          const row = rows[j + 1];
+          if (!row) return;
+          const nameInp = row.querySelector('.pl-name');
+          const lossInp = row.querySelector('.pl-loss');
+          if (document.activeElement !== nameInp && item.name != null) {
+            nameInp.value = item.name || '';
+          }
+          if (document.activeElement !== lossInp && item.loss_db != null) {
+            lossInp.value = round1(item.loss_db);
+          }
+        });
+        updatePortPathLossTotals(card);
+      });
+    }
+
+    function rowsByModel(model) {
+      return Array.from(document.querySelectorAll(`#carriers-body tr[data-model="${model}"]`));
+    }
+
+    function countActiveByModel(model) {
+      return rowsByModel(model).filter(tr => tr.querySelector('.radio-on').checked).length;
+    }
+
+    function canSetRepeaterRadioOn(tr, wantOn) {
+      const lim = REPEATER_LIMITS[tr.dataset.model];
+      if (!lim) return true;
+      const on = tr.querySelector('.radio-on').checked;
+      const n = countActiveByModel(tr.dataset.model);
+      if (wantOn && !on && n >= lim.max) return false;
+      if (!wantOn && on && n <= lim.min) return false;
+      return true;
+    }
+
+    function updateRepeaterLimitsHint() {
+      const el = document.getElementById('repeater-limits-hint');
+      const models = [...new Set(Array.from(document.querySelectorAll('#carriers-body tr')).map(tr => tr.dataset.model))];
+      const limited = models.filter(m => REPEATER_LIMITS[m]);
+      if (!limited.length) {
+        el.style.display = 'none';
+        return;
+      }
+      let bad = false;
+      const parts = limited.map(m => {
+        const lim = REPEATER_LIMITS[m];
+        const n = countActiveByModel(m);
+        if (n < lim.min || n > lim.max) bad = true;
+        return `${m}: ${n} of ${lim.max} active (min ${lim.min}; ${lim.hint})`;
+      });
+      el.style.display = '';
+      el.textContent = parts.join(' · ');
+      el.className = 'hint' + (bad ? ' fail' : '');
+    }
+
+    function updateTopologyHints(topology) {
+      const hints = TOPOLOGY_HINTS[topology] || TOPOLOGY_HINTS.custom;
+      document.getElementById('service-ports-hint').textContent = hints.servicePorts;
+      document.getElementById('carriers-hint').textContent = hints.carriers;
+    }
+
+    function updateRowVisual(tr) {
+      const on = tr.querySelector('.radio-on').checked;
+      tr.classList.toggle('row-off', !on);
+      tr.querySelectorAll('input:not(.radio-on), select').forEach(el => { el.disabled = !on; });
+    }
+
+    function buildCarrierRows() {
+      const tbody = document.getElementById('carriers-body');
+      tbody.innerHTML = '';
+      const custom = isCustomTopology();
+      const groupRowCounts = {};
+      carrierPreset.forEach(c => {
+        const gk = compGroupKey(c.repeater_unit_id, c.mno, c.repeater);
+        groupRowCounts[gk] = (groupRowCounts[gk] || 0) + 1;
+      });
+      const groupFirstRow = {};
+      carrierPreset.forEach((c) => {
+        const tr = document.createElement('tr');
+        tr.dataset.unit = c.repeater_unit_id;
+        tr.dataset.model = c.repeater;
+        const gk = compGroupKey(c.repeater_unit_id, c.mno, c.repeater);
+        tr.dataset.compGroup = gk;
+        const spCell = custom
+          ? `<select class="c-sport">${servicePortOptions(c.service_port_id)}</select>`
+          : `<span class="c-sport-ro">${c.service_port_id}</span>`;
+        let repCompCells = '';
+        if (!groupFirstRow[gk]) {
+          groupFirstRow[gk] = true;
+          const span = groupRowCounts[gk];
+          repCompCells = `
+          <td class="num readonly c-rep-full-comp" rowspan="${span}">—</td>
+          <td class="num readonly c-rep-idle-comp" rowspan="${span}">—</td>`;
+        }
+        tr.innerHTML = `
+          <td class="radio-on-cell"><input type="checkbox" class="radio-on" checked></td>
+          <td><input type="text" class="wide c-label" value="${c.label}"></td>
+          <td><span class="c-unit">${c.repeater_unit_id}</span></td>
+          <td><input type="text" class="compact c-mno" value="${c.mno}"></td>
+          <td>${spCell}</td>
+          <td class="num"><input type="number" class="compact c-full" value="${c.dl_power_full_dbm}" step="0.1"></td>
+          <td class="num"><input type="number" class="compact c-idle" value="${c.dl_power_idle_dbm}" step="0.1"></td>${repCompCells}`;
+        tr.dataset.carrierId = c.carrier_id;
+        tbody.appendChild(tr);
+        updateRowVisual(tr);
+      });
+      updateActiveCountLocal();
+      updateRepeaterLimitsHint();
+      updateRepeaterCompColumns();
+    }
+
+    function applyTopology(topology) {
+      const preset = TOPOLOGY_PRESETS[topology];
+      if (preset) {
+        carrierPreset = preset.carriers.map(x => ({...x}));
+        portPreset = preset.ports.map(p => ({
+          ...p,
+          passive_loss_items: (p.passive_loss_items || DEFAULT_PASSIVE_ITEMS).map(x => ({...x})),
+        }));
+      }
+      buildServicePortCards();
+      buildCarrierRows();
+      updateTopologyHints(topology);
+      bindUpdates();
+      fetchBudget();
+    }
+
+    function updateActiveCountLocal() {
+      const rows = document.querySelectorAll('#carriers-body tr');
+      let n = 0;
+      rows.forEach(tr => { if (tr.querySelector('.radio-on').checked) n++; });
+      document.getElementById('active-radio-count').textContent =
+        'Active radios: ' + n + ' of ' + rows.length;
+    }
+
+    function readCarriers() {
+      return Array.from(document.querySelectorAll('#carriers-body tr')).map((tr) => {
+        const on = tr.querySelector('.radio-on').checked;
+        const spEl = tr.querySelector('.c-sport');
+        const sport = spEl ? spEl.value : (tr.querySelector('.c-sport-ro')?.textContent || 'sp1');
+        return {
+          carrier_id: tr.dataset.carrierId || 'c',
+          label: tr.querySelector('.c-label').value,
+          repeater: tr.dataset.model || 'G41',
+          repeater_unit_id: tr.dataset.unit || 'g41-1',
+          service_port_id: sport,
+          mno: tr.querySelector('.c-mno').value,
+          dl_power_full_dbm: parseFloat(tr.querySelector('.c-full').value),
+          dl_power_idle_dbm: parseFloat(tr.querySelector('.c-idle').value),
+          radio_on: on, active_full: on, active_idle: on,
+        };
+      });
+    }
+
+    function readPorts() {
+      const carriers = readCarriers();
+      return Array.from(document.querySelectorAll('#service-ports-container .port-sm-card')).map((card, i) => {
+        const preset = portPreset[i] || {};
+        const pl = Array.from(card.querySelectorAll('.passive-row')).slice(1).map((row) => {
+          const lossVal = row.querySelector('.pl-loss').value;
+          return {
+            name: row.querySelector('.pl-name').value.trim(),
+            loss_db: (lossVal === '' || lossVal == null) ? null : parseFloat(lossVal),
+          };
+        });
+        const dlAtten = parseAttenInput(passiveLossInput(card, PASSIVE_ROW.DL_ATTEN)?.value);
+        const ulAtten = parseAttenInput(passiveLossInput(card, PASSIVE_ROW.UL_ATTEN)?.value);
+        if (dlAtten != null) {
+          pl[PASSIVE_ROW.DL_ATTEN] = {
+            ...pl[PASSIVE_ROW.DL_ATTEN],
+            name: pl[PASSIVE_ROW.DL_ATTEN]?.name || 'DL attenuator',
+            loss_db: dlAtten,
+          };
+        }
+        if (ulAtten != null) {
+          pl[PASSIVE_ROW.UL_ATTEN] = {
+            ...pl[PASSIVE_ROW.UL_ATTEN],
+            name: pl[PASSIVE_ROW.UL_ATTEN]?.name || 'UL attenuator',
+            loss_db: ulAtten,
+          };
+        }
+        let fed = preset.fed_by_repeater_units;
+        if (isCustomTopology()) {
+          const pid = preset.port_id || card.dataset.portId;
+          fed = [...new Set(carriers.filter(c => c.service_port_id === pid).map(c => c.repeater_unit_id))];
+        }
+        return {
+          port_id: preset.port_id || card.dataset.portId || ('sp' + (i+1)),
+          name: preset.name || card.querySelector('h3').textContent,
+          fed_by_repeater_units: fed,
+          passive_loss_items: pl,
+          path_loss_db: 0,
+          current_system_gain_db: null,
+          calculated_dl_input_level: (() => {
+            const dasCard = document.querySelector(`#das-dl-ports-container .das-dl-card[data-port-id="${preset.port_id || card.dataset.portId}"]`)
+              || document.querySelectorAll('#das-dl-ports-container .das-dl-card')[i];
+            const v = dasCard?.querySelector('.das-calc-dl')?.value;
+            if (v !== '' && v != null) return parseInt(v, 10);
+            return CALC_DL_INPUT.default;
+          })(),
+          dl_agc_db: dlAtten,
+          ul_attenuation_db: ulAtten,
+          portal_ul_balance_db: (() => {
+            const ulCard = document.querySelector(`#das-ul-ports-container .das-dl-card[data-port-id="${preset.port_id || card.dataset.portId}"]`)
+              || document.querySelectorAll('#das-ul-ports-container .das-dl-card')[i];
+            const v = ulCard?.querySelector('.das-ul-balance')?.value;
+            if (v !== '' && v != null) return parseFloat(v);
+            return PORTAL_UL_BALANCE.default;
+          })(),
+        };
+      });
+    }
+
+    function readHeadend() {
+      return {
+        topology: document.getElementById('topology').value,
+        profile: 'repeater_fed_max',
+        ru_max_composite_dbm: parseFloat(document.getElementById('ru-cap').value),
+        target_ru_composite_dbm: parseFloat(document.getElementById('ru-cap').value),
+        headroom_db: 0,
+        optical_loss_dbo: parseFloat(document.getElementById('optical-loss').value),
+      };
+    }
+
+    function renderPortResult(p) {
+      const passCls = p.overall_pass ? 'pass' : 'fail';
+      const vm = p.verification_matrix;
+      const termFull = p.power_label_full || powerTerm(p.active_carrier_count_full);
+      const termIdle = p.power_label_idle || powerTerm(p.active_carrier_count_idle);
+      const hubTermFull = hubPowerTerm(p.active_carrier_count_full);
+      const hubTermIdle = hubPowerTerm(p.active_carrier_count_idle);
+      return `<div class="port-card">
+        <p><strong class="${passCls}">${p.overall_pass ? 'PASS' : 'CHECK'}</strong> — ${p.name}</p>
+        <p>Fed by: ${(p.fed_by_repeater_units || []).join(', ') || '—'} · DL path: ${round1(p.dl_path_loss_db ?? p.passive_loss_total_db)} dB · UL path: ${round1(p.ul_path_loss_db)} dB</p>
+        <p><strong>Calculated DL Input Level:</strong> ${p.calculated_dl_input_level ?? '—'} · <strong>Effective max DL gain:</strong> ${round1(p.effective_max_dl_gain_db)} dB · <strong>EM budget:</strong> ${round1(p.em_dl_gain_budget_db)} dB · <strong>System gain:</strong> ${round1(p.recommended_system_gain_db)} dB · DL atten: ${round1(p.dl_agc_db)} dB · Optical: ${round1(p.optical_loss_dbo)} dBo</p>
+        <p>Full load — Repeater ${termFull}: ${round1(vm.full_load.repeater_out_dbm)} · Hub ${hubTermFull}: ${round1(vm.full_load.hub_input_dbm)} dBm (protected) · RU ${termFull}: ${round1(vm.full_load.ru_output_dbm)} dBm</p>
+        <p>Idle — Hub ${hubTermIdle}: ${round1(vm.idle.hub_input_dbm)} · RU ${termIdle}: ${round1(vm.idle.ru_output_dbm)} dBm</p>
+        ${renderRuCarrierTableHtml(p.full, p.idle)}
+      </div>`;
+    }
+
+    let debounceTimer = null;
+    function fetchBudget() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetch('/api/power-budget', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ carriers: readCarriers(), ports: readPorts(), headend: readHeadend() }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            const resultEl = document.getElementById('result');
+            if (data.error) {
+              document.getElementById('status-text').textContent = 'Error: ' + data.error;
+              resultEl.classList.add('fail-state');
+              document.getElementById('ru-per-carrier').style.display = 'none';
+              return;
+            }
+            if (data.headend?.active_carrier_count_full === 0) {
+              document.getElementById('status-text').textContent = 'No radios enabled.';
+              resultEl.classList.add('fail-state');
+              document.getElementById('ru-per-carrier').style.display = 'none';
+              return;
+            }
+            resultEl.classList.toggle('fail-state', !data.all_ports_pass);
+            const p0 = data.ports && data.ports[0];
+            const ruCapTerm = p0 ? (p0.power_label_full || powerTerm(p0.active_carrier_count_full)) : 'composite power';
+            document.getElementById('status-text').textContent = data.all_ports_pass
+              ? `All ${data.ports.length} service port(s) within limits (RU ${ruCapTerm} ≤ +${round1(data.element_manager?.ru_composite_cap_dbm)} dBm).`
+              : 'Check required on one or more service module ports.';
+            const multi = data.multi_port;
+            document.getElementById('em-scope').textContent = multi ? '(see per-port below)' : '(combined port)';
+            document.getElementById('calc-dl-input').textContent = multi ? '—' : (data.element_manager?.calculated_dl_input_level ?? '—');
+            document.getElementById('dl-agc').textContent = multi ? '—' : round1(data.element_manager?.dl_agc_db);
+            document.getElementById('sys-gain').textContent = multi ? '—' : round1(data.element_manager?.system_active_dl_gain_db);
+            const effMax = data.element_manager?.effective_max_dl_gain_db ?? data.headend?.effective_max_dl_gain_db;
+            document.getElementById('eff-max-gain').textContent = multi ? '—' : round1(effMax);
+            document.getElementById('em-note').textContent = data.element_manager?.note || '';
+            const rep = data.repeaters || {};
+            document.getElementById('repeater-summary-row').innerHTML = Object.keys(rep).sort().map(model => {
+              const n = countActiveByRepeater(data.carriers, model);
+              return `<span>${model} ${powerTerm(n)} (full): <strong>${round1(rep[model]?.full)}</strong> dBm</span>`;
+            }).join(' ');
+            document.getElementById('mcf').textContent = round1(data.headend?.multi_carrier_factor_full_db);
+            document.getElementById('active-full-count').textContent = data.headend?.active_carrier_count_full ?? '—';
+            document.getElementById('active-idle-count').textContent = data.headend?.active_carrier_count_idle ?? '—';
+            if (p0?.walk_test) {
+              document.getElementById('cw-offset').textContent = round1(p0.walk_test.cw_plotting_offset_db);
+              document.getElementById('rsrp-offset').textContent = round1(p0.walk_test.rsrp_20mhz_plotting_offset_db);
+            }
+            if (!multi && p0) {
+              updateMatrixHeaders(p0.active_carrier_count_full, p0.active_carrier_count_idle);
+              document.getElementById('matrix-body').innerHTML = [
+                ['100% full load', p0.verification_matrix.full_load, p0.full, p0.power_label_full || powerTerm(p0.active_carrier_count_full)],
+                ['0% idle', p0.verification_matrix.idle, p0.idle, p0.power_label_idle || powerTerm(p0.active_carrier_count_idle)],
+              ].map(([label, m, sc, term]) => matrixRow(label, m, sc, term)).join('');
+              renderRuCarrierTable(p0.full, p0.idle);
+            } else {
+              document.getElementById('matrix-body').innerHTML = '<tr><td colspan="6">Multi-port — see per-port results below.</td></tr>';
+              document.getElementById('ru-per-carrier').style.display = 'none';
+              document.getElementById('ru-carrier-body').innerHTML = '';
+            }
+            document.getElementById('ports-results').innerHTML = (data.ports || []).map(renderPortResult).join('');
+            syncPassiveRowsFromPorts(data.ports);
+            updateDasDlPortCards(data.ports);
+            updateDasUlPortCards(data.ports);
+          })
+          .catch((err) => {
+            console.error('Power budget request failed:', err);
+            document.getElementById('status-text').textContent = 'Request failed — check console for details.';
+          });
+      }, 180);
+    }
+
+    function ruCarrierListHtml(carriers) {
+      const active = (carriers || []).filter(c => c.active && c.ru_dl_dbm != null);
+      if (!active.length) return '';
+      const items = active.map(c =>
+        `<li><span class="lbl">${c.label || c.carrier_id}</span> ${round1(c.ru_dl_dbm)}</li>`
+      ).join('');
+      return `<ul class="ru-carrier-list">${items}</ul>`;
+    }
+
+    function mergeRuCarrierRows(fullScenario, idleScenario) {
+      const byId = new Map();
+      (fullScenario?.carriers || []).forEach(c => {
+        byId.set(c.carrier_id, {
+          label: c.label || c.carrier_id,
+          full: c.active ? c.ru_dl_dbm : null,
+          idle: null,
+        });
+      });
+      (idleScenario?.carriers || []).forEach(c => {
+        const row = byId.get(c.carrier_id) || {
+          label: c.label || c.carrier_id,
+          full: null,
+          idle: null,
+        };
+        row.idle = c.active ? c.ru_dl_dbm : null;
+        if (!byId.has(c.carrier_id)) byId.set(c.carrier_id, row);
+      });
+      return [...byId.values()].filter(r => r.full != null || r.idle != null);
+    }
+
+    function renderRuCarrierTable(fullScenario, idleScenario) {
+      const table = document.getElementById('ru-per-carrier');
+      const body = document.getElementById('ru-carrier-body');
+      const rows = mergeRuCarrierRows(fullScenario, idleScenario);
+      if (!rows.length) {
+        table.style.display = 'none';
+        body.innerHTML = '';
+        return;
+      }
+      table.style.display = '';
+      body.innerHTML = rows.map(r =>
+        `<tr><td>${r.label}</td><td class="num">${r.full != null ? round1(r.full) : '—'}</td>`
+        + `<td class="num">${r.idle != null ? round1(r.idle) : '—'}</td></tr>`
+      ).join('');
+    }
+
+    function renderRuCarrierTableHtml(fullScenario, idleScenario) {
+      const rows = mergeRuCarrierRows(fullScenario, idleScenario);
+      if (!rows.length) return '';
+      const body = rows.map(r =>
+        `<tr><td>${r.label}</td><td class="num">${r.full != null ? round1(r.full) : '—'}</td>`
+        + `<td class="num">${r.idle != null ? round1(r.idle) : '—'}</td></tr>`
+      ).join('');
+      return `<table class="matrix" style="margin-top:0.5rem;"><caption style="caption-side:top;text-align:left;font-weight:600;padding-bottom:0.25rem;">RU per-carrier output</caption>`
+        + `<thead><tr><th>Carrier</th><th>Full load (dBm)</th><th>Idle (dBm)</th></tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function matrixRow(label, m, sc, powerLabel) {
+      const hubCls = sc?.hub_within_window ? 'pass' : 'fail';
+      const ruCls = sc?.ru_at_cap ? 'pass' : 'fail';
+      const ruNote = sc?.ru_over_db > 0 ? ('+' + round1(sc.ru_over_db) + ' dB over') : 'OK';
+      const hubNote = sc?.hub_over_db > 0 ? ('+' + round1(sc.hub_over_db) + ' over') : (sc?.hub_under_db > 0 ? round1(sc.hub_under_db) + ' under' : 'OK');
+      const ruBreakdown = ruCarrierListHtml(sc?.carriers);
+      const ruCell = `<div>${round1(m.ru_output_dbm)}</div>${ruBreakdown}`;
+      return `<tr><td>${label}</td><td class="num">${round1(m.repeater_out_dbm)}</td><td class="num">${round1(m.hub_input_dbm)}</td><td class="num ru-cell">${ruCell}</td><td class="${ruCls}" title="RU ${powerLabel}">${ruNote}</td><td class="${hubCls}">${hubNote}</td></tr>`;
+    }
+
+    function bindUpdates() {
+      document.querySelectorAll('input, select').forEach(el => {
+        el.removeEventListener('input', fetchBudget);
+        el.removeEventListener('change', fetchBudget);
+        el.addEventListener('input', fetchBudget);
+        el.addEventListener('change', fetchBudget);
+      });
+      document.querySelectorAll('#service-ports-container .port-sm-card').forEach((card) => {
+        card.querySelectorAll('.pl-loss').forEach((inp) => {
+          inp.addEventListener('input', () => updatePortPathLossTotals(card));
+        });
+      });
+    }
+
+    document.getElementById('topology').addEventListener('change', function () {
+      if (this.value === 'custom') {
+        buildServicePortCards();
+        buildCarrierRows();
+        updateTopologyHints('custom');
+        bindUpdates();
+        fetchBudget();
+      } else {
+        applyTopology(this.value);
+      }
+    });
+
+    document.getElementById('carriers-body').addEventListener('change', e => {
+      if (e.target.classList.contains('radio-on')) {
+        const tr = e.target.closest('tr');
+        const wantOn = e.target.checked;
+        if (!canSetRepeaterRadioOn(tr, wantOn)) {
+          e.target.checked = !wantOn;
+        } else {
+          updateRowVisual(tr);
+        }
+        updateActiveCountLocal();
+        updateRepeaterLimitsHint();
+        updateRepeaterCompColumns();
+        fetchBudget();
+      }
+    });
+
+    document.getElementById('carriers-body').addEventListener('input', e => {
+      if (e.target.classList.contains('c-full') || e.target.classList.contains('c-idle')) {
+        updateRepeaterCompColumns();
+      }
+    });
+
+    document.getElementById('ru-cap').addEventListener('change', function () {
+      this.value = Math.min(20, Math.max(0, parseFloat(this.value) || 20));
+    });
+
+    document.getElementById('reset-defaults').addEventListener('click', () => {
+      document.getElementById('topology').value = 'cel_fi_quatra_combined';
+      document.getElementById('ru-cap').value = '20';
+      document.getElementById('optical-loss').value = '1';
+      applyTopology('cel_fi_quatra_combined');
+    });
+
+    applyTopology('cel_fi_quatra_combined');
+  </script>
+</body>
+</html>

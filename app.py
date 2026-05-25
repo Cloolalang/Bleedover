@@ -17,6 +17,12 @@ import statistics
 from flask import Flask, jsonify, render_template, request
 
 from . import throughput_model
+from .power_budget_model import (
+    compute_power_budget,
+    normalize_carrier,
+    normalize_headend,
+    normalize_port,
+)
 from .throughput_model import (
     congestion_factor,
     effective_mcs_from_rsrp_rsrq,
@@ -93,6 +99,31 @@ BENCHMARK_SOURCE_SUMMARY = "5G: Ookla 5G median (H2 2025). Overall: Opensignal D
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/power-budget")
+def power_budget_page():
+    return render_template("power_budget.html")
+
+
+@app.route("/api/power-budget", methods=["POST"])
+def api_power_budget():
+    """Zinwave repeater-fed DAS downlink power budget."""
+    data = request.get_json(silent=True) or {}
+    carriers_data = data.get("carriers") or []
+    ports_data = data.get("ports") or []
+    try:
+        carriers = [normalize_carrier(c, i) for i, c in enumerate(carriers_data)]
+        ports = [normalize_port(p, i) for i, p in enumerate(ports_data)]
+        headend = normalize_headend(data.get("headend"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid power budget inputs"}), 400
+    if not carriers:
+        return jsonify({"error": "At least one carrier is required"}), 400
+    if not ports:
+        return jsonify({"error": "At least one service port is required"}), 400
+    result = compute_power_budget(carriers, ports, headend)
+    return jsonify(result)
 
 
 @app.route("/api/expected-dl", methods=["POST"])
